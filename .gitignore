@@ -1,0 +1,25 @@
+# ── Secrets — NEVER commit these ─────────────────────────────────────────────
+backend/.env
+Frontend/.env
+Frontend/.env.production
+
+# ── Dependencies ──────────────────────────────────────────────────────────────
+node_modules/
+backend/node_modules/
+Frontend/node_modules/
+
+# ── Build output ──────────────────────────────────────────────────────────────
+Frontend/dist/
+
+# ── Uploads (user files on disk — not for git) ────────────────────────────────
+backend/uploads/**/*
+!backend/uploads/.gitkeep
+
+# ── Logs ──────────────────────────────────────────────────────────────────────
+*.log
+npm-debug.log*
+
+# ── OS / Editor ───────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+.vscode/settings.json

@@ -1,0 +1,84 @@
+# render.yaml — Render.com Infrastructure as Code
+# Docs: https://render.com/docs/infrastructure-as-code
+#
+# This file defines 3 services:
+#   1. ccims-redis     — Redis instance (caching + rate limiting + token blacklist)
+#   2. ccims-backend   — Node.js/Express API  (port 5000)
+#   3. ccims-frontend  — React SPA served by Express (port 3000)
+#
+# Deploy steps:
+#   1. Push this file to GitHub (root of repo)
+#   2. Render dashboard → New → Blueprint → connect this repo
+#   3. Render auto-creates all 3 services and wires env vars
+
+services:
+
+  # ── 1. Backend API ──────────────────────────────────────────────────────────
+  - type: web
+    name: ccims-backend
+    runtime: node
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 5000
+      - key: MONGO_URI
+        sync: false          # Set manually in Render dashboard (secret)
+      - key: JWT_SECRET
+        sync: false          # Set manually in Render dashboard (secret)
+      - key: JWT_EXPIRES_IN
+        value: 7d
+      - key: REDIS_URL
+        fromService:
+          name: ccims-redis
+          type: redis
+          property: connectionString
+      - key: CLIENT_URL
+        fromService:
+          name: ccims-frontend
+          type: web
+          property: host
+          envVarKey: RENDER_EXTERNAL_URL
+      - key: UPLOAD_DIR
+        value: uploads
+      - key: MAX_FILE_SIZE_MB
+        value: 10
+      - key: LATE_CUTOFF_TIME
+        value: "09:15"
+
+  # ── 2. Frontend SPA ─────────────────────────────────────────────────────────
+  - type: web
+    name: ccims-frontend
+    runtime: node
+    rootDir: Frontend
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3000
+      - key: VITE_API_URL
+        fromService:
+          name: ccims-backend
+          type: web
+          property: host
+          envVarKey: RENDER_EXTERNAL_URL
+        # Will be set as: https://ccims-backend.onrender.com/api
+      - key: VITE_SOCKET_URL
+        fromService:
+          name: ccims-backend
+          type: web
+          property: host
+          envVarKey: RENDER_EXTERNAL_URL
+
+# ── 3. Redis ──────────────────────────────────────────────────────────────────
+  - type: redis
+    name: ccims-redis
+    plan: free
+    maxmemoryPolicy: allkeys-lru   # evict least-recently-used keys when memory full

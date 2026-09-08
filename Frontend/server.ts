@@ -1,38 +1,47 @@
 import express from "express";
 import path from "path";
 import { createServer } from "http";
-import { createServer as createViteServer } from "vite";
+import { fileURLToPath } from "url";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 async function startServer() {
   const app = express();
   const httpServer = createServer(app);
-  const PORT = 3000;
+  const PORT = Number(process.env.PORT) || 3000;
 
   app.use(express.json());
 
-  // Health check
+  // Health check — Render uses this to confirm the service is up
   app.get("/api/health", (req, res) => {
     res.json({ status: "ok", timestamp: new Date().toISOString() });
   });
 
-  // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
+    // ── Development: Vite dev server as middleware ──────────────────────────
+    const { createServer: createViteServer } = await import("vite");
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: "spa",
     });
     app.use(vite.middlewares);
   } else {
-    const distPath = path.join(process.cwd(), "dist");
+    // ── Production: serve the pre-built Vite output ────────────────────────
+    // `vite build` outputs to dist/ — we serve it as static files and fall
+    // back to index.html for all non-file routes (React SPA routing).
+    const distPath = path.join(__dirname, "dist");
     app.use(express.static(distPath));
-    app.get("*", (req, res) => {
+    app.get("*", (_req, res) => {
       res.sendFile(path.join(distPath, "index.html"));
     });
   }
 
   httpServer.listen(PORT, "0.0.0.0", () => {
-    console.log(`Server running on http://localhost:${PORT}`);
+    console.log(`🌐 Frontend server running on http://0.0.0.0:${PORT}`);
   });
 }
 
-startServer();
+startServer().catch((err) => {
+  console.error("Failed to start frontend server:", err);
+  process.exit(1);
+});
