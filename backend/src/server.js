@@ -76,6 +76,18 @@ app.use('/api/reports',       reportRoutes);
 app.use('/api/audit',         auditRoutes);
 app.use('/api/notifications', notificationRoutes);
 
+// ── Frontend SPA — serve React build from ../Frontend/dist ────────────────────
+// In production (Render), the repo root contains both backend/ and Frontend/.
+// The frontend is built separately and its dist/ folder is referenced here.
+// Every non-/api route returns index.html so React Router handles client-side paths.
+const frontendDist = path.join(__dirname, '..', '..', 'Frontend', 'dist');
+if (process.env.NODE_ENV === 'production') {
+  app.use(express.static(frontendDist));
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(frontendDist, 'index.html'));
+  });
+}
+
 // ── Error handling (must be last) ─────────────────────────────────────────────
 app.use(notFound);
 app.use(errorHandler);

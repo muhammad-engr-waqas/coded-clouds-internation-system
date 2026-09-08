@@ -1,35 +1,27 @@
 # render.yaml — Render.com Infrastructure as Code
-# Docs: https://render.com/docs/infrastructure-as-code
-#
-# This file defines 3 services:
-#   1. ccims-redis     — Redis instance (caching + rate limiting + token blacklist)
-#   2. ccims-backend   — Node.js/Express API  (port 5000)
-#   3. ccims-frontend  — React SPA served by Express (port 3000)
-#
-# Deploy steps:
-#   1. Push this file to GitHub (root of repo)
-#   2. Render dashboard → New → Blueprint → connect this repo
-#   3. Render auto-creates all 3 services and wires env vars
+# Single web service: builds Frontend then starts Backend (which serves both API + SPA)
 
 services:
 
-  # ── 1. Backend API ──────────────────────────────────────────────────────────
+  # ── Combined Backend + Frontend ────────────────────────────────────────────
   - type: web
-    name: ccims-backend
+    name: coded-clouds-internation-system
     runtime: node
-    rootDir: backend        # lowercase — matches actual folder name on disk
-    buildCommand: npm install
+    rootDir: backend
+    # Build: install backend deps + install frontend deps + build frontend
+    buildCommand: npm install && cd ../Frontend && npm install && npm run build
+    # Start: backend Express server serves both /api/* and the React SPA
     startCommand: npm start
     healthCheckPath: /api/health
     envVars:
       - key: NODE_ENV
         value: production
       - key: PORT
-        value: 5000
+        value: 10000
       - key: MONGO_URI
-        sync: false          # Set manually in Render dashboard (secret)
+        sync: false
       - key: JWT_SECRET
-        sync: false          # Set manually in Render dashboard (secret)
+        sync: false
       - key: JWT_EXPIRES_IN
         value: 7d
       - key: REDIS_URL
@@ -38,11 +30,7 @@ services:
           type: redis
           property: connectionString
       - key: CLIENT_URL
-        fromService:
-          name: ccims-frontend
-          type: web
-          property: host
-          envVarKey: RENDER_EXTERNAL_URL
+        value: https://coded-clouds-internation-system.onrender.com
       - key: UPLOAD_DIR
         value: uploads
       - key: MAX_FILE_SIZE_MB
@@ -50,35 +38,8 @@ services:
       - key: LATE_CUTOFF_TIME
         value: "09:15"
 
-  # ── 2. Frontend SPA ─────────────────────────────────────────────────────────
-  - type: web
-    name: ccims-frontend
-    runtime: node
-    rootDir: Frontend       # capital F — matches actual folder name on disk
-    buildCommand: npm install && npm run build
-    startCommand: npm start
-    healthCheckPath: /api/health
-    envVars:
-      - key: NODE_ENV
-        value: production
-      - key: PORT
-        value: 3000
-      - key: VITE_API_URL
-        fromService:
-          name: ccims-backend
-          type: web
-          property: host
-          envVarKey: RENDER_EXTERNAL_URL
-        # Will be set as: https://ccims-backend.onrender.com/api
-      - key: VITE_SOCKET_URL
-        fromService:
-          name: ccims-backend
-          type: web
-          property: host
-          envVarKey: RENDER_EXTERNAL_URL
-
-# ── 3. Redis ──────────────────────────────────────────────────────────────────
+  # ── Redis ─────────────────────────────────────────────────────────────────
   - type: redis
     name: ccims-redis
     plan: free
-    maxmemoryPolicy: allkeys-lru   # evict least-recently-used keys when memory full
+    maxmemoryPolicy: allkeys-lru
