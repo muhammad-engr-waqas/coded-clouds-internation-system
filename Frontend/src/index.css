@@ -1,0 +1,47 @@
+@import "tailwindcss";
+
+@theme {
+  --color-accent: var(--accent);
+}
+
+:root {
+  --background: #eff8ff;
+  --surface: #ffffff;
+  --text: #0c4a6e;
+  --accent: #0284c7;
+  --border: #b9e6fe;
+  --border-light: #e0f2fe;
+}
+
+[data-theme='dark'] {
+  --background: #0f172a;
+  --surface: #1e293b;
+  --text: #f1f5f9;
+  --accent: #38bdf8;
+  --border: #334155;
+  --border-light: #1e293b;
+}
+
+[data-theme='sky'] {
+  --background: #eff8ff;
+  --surface: #ffffff;
+  --text: #0c4a6e;
+  --accent: #0284c7;
+  --border: #b9e6fe;
+  --border-light: #e0f2fe;
+}
+
+body {
+  background-color: var(--background);
+  color: var(--text);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  transition: background-color 0.3s ease, color 0.3s ease;
+  font-size: 14px;
+}
+
+@layer components {
+  .card {
+    @apply bg-[var(--surface)] rounded-xl border border-[var(--border-light)] shadow-sm;
+  }
+}
+

@@ -1,0 +1,6 @@
+{
+  "name": "Coded Clouds CCIMS",
+  "description": "Coded Clouds Internal Management System - A comprehensive enterprise-grade solution for employee, task, attendance, and project management.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
