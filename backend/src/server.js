@@ -77,14 +77,26 @@ app.use('/api/audit',         auditRoutes);
 app.use('/api/notifications', notificationRoutes);
 
 // ── Frontend SPA — serve React build from ../Frontend/dist ────────────────────
-// In production (Render), the repo root contains both backend/ and Frontend/.
-// The frontend is built separately and its dist/ folder is referenced here.
-// Every non-/api route returns index.html so React Router handles client-side paths.
 const frontendDist = path.join(__dirname, '..', '..', 'Frontend', 'dist');
 if (process.env.NODE_ENV === 'production') {
-  app.use(express.static(frontendDist));
-  app.get('*', (req, res) => {
-    res.sendFile(path.join(frontendDist, 'index.html'));
+  // Log the resolved path so Render build logs confirm it's correct
+  console.log('📁 Serving frontend from:', frontendDist);
+
+  // Serve static assets (hashed JS/CSS bundles from vite build)
+  app.use(express.static(frontendDist, { index: false }));
+
+  // SPA fallback — must come AFTER /api/* routes and BEFORE notFound
+  // Any path that is not an API route and not a static file → index.html
+  app.use((req, res, next) => {
+    if (req.path.startsWith('/api/') || req.path.startsWith('/uploads/')) {
+      return next();
+    }
+    res.sendFile(path.join(frontendDist, 'index.html'), (err) => {
+      if (err) {
+        console.error('sendFile error:', err.message, '| distPath:', frontendDist);
+        next(err);
+      }
+    });
   });
 }
 
