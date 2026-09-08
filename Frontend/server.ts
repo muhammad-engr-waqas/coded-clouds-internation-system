@@ -13,7 +13,7 @@ async function startServer() {
   app.use(express.json());
 
   // Health check — Render uses this to confirm the service is up
-  app.get("/api/health", (req, res) => {
+  app.get("/api/health", (_req, res) => {
     res.json({ status: "ok", timestamp: new Date().toISOString() });
   });
 
@@ -26,11 +26,15 @@ async function startServer() {
     });
     app.use(vite.middlewares);
   } else {
-    // ── Production: serve the pre-built Vite output ────────────────────────
-    // `vite build` outputs to dist/ — we serve it as static files and fall
-    // back to index.html for all non-file routes (React SPA routing).
-    const distPath = path.join(__dirname, "dist");
+    // ── Production: serve Vite build output ───────────────────────────────
+    // server.mjs is bundled INTO dist/ by esbuild, so __dirname === dist/
+    // The static assets (index.html, assets/) sit in the same dist/ folder.
+    // We serve "." relative to __dirname which resolves correctly.
+    const distPath = __dirname; // dist/ contains both server.mjs AND index.html
+
     app.use(express.static(distPath));
+
+    // SPA fallback — every non-file request gets index.html so React Router works
     app.get("*", (_req, res) => {
       res.sendFile(path.join(distPath, "index.html"));
     });
