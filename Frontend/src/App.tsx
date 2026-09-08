@@ -21,22 +21,31 @@ import { LeaveManagement } from './pages/LeaveManagement';
 import AdminSettings from './pages/AdminSettings';
 import ReportsDashboard from './pages/ReportsDashboard';
 
+// ── Hash-based routing helper ──────────────────────────────────────────────
+// We use window.location.hash (#/admin/employees) instead of pathname so that
+// page refresh always sends GET / to the server — no server-side SPA config needed.
+function getHashPath(): string {
+  const hash = window.location.hash; // e.g. "#/admin/employees"
+  return hash.startsWith('#') ? hash.slice(1) || '/' : '/';
+}
+
+export function navigate(path: string) {
+  window.location.hash = path;
+}
+
 export default function App() {
   const { user, setUser } = useAppStore();
-  const [currentPath, setCurrentPath] = useState(window.location.pathname);
+  const [currentPath, setCurrentPath] = useState(getHashPath);
   const [checkingSession, setCheckingSession] = useState(true);
 
-  // Simple routing hack for demo
-  React.useEffect(() => {
-    const handlePopState = () => setCurrentPath(window.location.pathname);
-    window.addEventListener('popstate', handlePopState);
-    return () => window.removeEventListener('popstate', handlePopState);
+  // Listen for hash changes (back/forward + navigate() calls)
+  useEffect(() => {
+    const onHashChange = () => setCurrentPath(getHashPath());
+    window.addEventListener('hashchange', onHashChange);
+    return () => window.removeEventListener('hashchange', onHashChange);
   }, []);
 
-  // On every load/refresh, the JWT (not any cached "user" object) is the source of truth for
-  // whether we're logged in. Re-validate it against the database via GET /api/auth/me — this
-  // is what makes refresh/close-and-reopen safe: if the token is missing/expired/invalid, the
-  // user is bounced back to a real login instead of resuming a stale or fabricated session.
+  // Re-validate JWT on every load/refresh
   useEffect(() => {
     const token = getToken();
     if (!token) {
@@ -64,42 +73,37 @@ export default function App() {
     );
   }
 
-  if (!user) {
-    return <Login />;
-  }
+  if (!user) return <Login />;
 
   const renderDashboard = () => {
-    const path = currentPath;
+    const p = currentPath;
 
-    // Admin Routes
     if (user.role === 'Admin') {
-      if (path === '/admin/employees') return <EmployeeDirectory />;
-      if (path === '/admin/tasks') return <TaskManagement />;
-      if (path === '/admin/payroll') return <PayrollManagement />;
-      if (path === '/admin/attendance') return <AttendanceManagement />;
-      if (path === '/admin/chat') return <ChatModule />;
-      if (path === '/admin/projects') return <ProjectManagement />;
-      if (path === '/admin/leave') return <LeaveManagement />;
-      if (path === '/admin/settings') return <AdminSettings />;
-      if (path === '/admin/reports') return <ReportsDashboard />;
+      if (p === '/admin/employees') return <EmployeeDirectory />;
+      if (p === '/admin/tasks')     return <TaskManagement />;
+      if (p === '/admin/payroll')   return <PayrollManagement />;
+      if (p === '/admin/attendance')return <AttendanceManagement />;
+      if (p === '/admin/chat')      return <ChatModule />;
+      if (p === '/admin/projects')  return <ProjectManagement />;
+      if (p === '/admin/leave')     return <LeaveManagement />;
+      if (p === '/admin/settings')  return <AdminSettings />;
+      if (p === '/admin/reports')   return <ReportsDashboard />;
       return <AdminDashboard />;
     }
 
-    // HR Routes
     if (user.role === 'HR') {
-      if (path === '/hr/employees') return <EmployeeDirectory />;
-      if (path === '/hr/payroll') return <PayrollManagement />;
-      if (path === '/hr/attendance') return <AttendanceManagement />;
-      if (path === '/hr/chat') return <ChatModule />;
-      if (path === '/hr/leave') return <LeaveManagement />;
+      if (p === '/hr/employees')  return <EmployeeDirectory />;
+      if (p === '/hr/payroll')    return <PayrollManagement />;
+      if (p === '/hr/attendance') return <AttendanceManagement />;
+      if (p === '/hr/chat')       return <ChatModule />;
+      if (p === '/hr/leave')      return <LeaveManagement />;
       return <EmployeeDashboard />;
     }
 
-    // Default to Employee
-    if (path === '/employee/tasks') return <TaskManagement />;
-    if (path === '/employee/attendance') return <AttendanceManagement />;
-    if (path === '/employee/chat') return <ChatModule />;
-    if (path === '/employee/leave') return <LeaveManagement />;
+    if (p === '/employee/tasks')      return <TaskManagement />;
+    if (p === '/employee/attendance') return <AttendanceManagement />;
+    if (p === '/employee/chat')       return <ChatModule />;
+    if (p === '/employee/leave')      return <LeaveManagement />;
     return <EmployeeDashboard />;
   };
 

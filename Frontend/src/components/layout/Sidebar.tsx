@@ -19,6 +19,7 @@ import {
 import { useAppStore } from '@/src/store';
 import { cn } from '@/src/lib/utils';
 import { BrandLogo } from '@/src/components/ui/BrandLogo';
+import { navigate } from '@/src/App';
 
 const navItems = {
   Admin: [
@@ -66,9 +67,8 @@ export function Sidebar() {
   const items = navItems[role as keyof typeof navItems];
 
   const handleNavClick = (path: string) => {
-    window.history.pushState({}, '', path);
-    window.dispatchEvent(new PopStateEvent('popstate'));
-    setMobileSidebarOpen(false); // Close on mobile navigation
+    navigate(path);  // sets window.location.hash = path → hashchange fires → App re-renders
+    setMobileSidebarOpen(false);
   };
 
   return (
@@ -121,13 +121,13 @@ export function Sidebar() {
               onClick={() => handleNavClick(item.path)}
               className={cn(
                 "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all group text-left",
-                window.location.pathname === item.path 
+                window.location.hash === `#${item.path}`
                   ? "bg-accent/5 text-accent font-black text-xs" 
                   : "text-[var(--text)]/70 hover:bg-[var(--background)]/50 text-xs font-bold",
                 sidebarCollapsed && !mobileSidebarOpen && "lg:justify-center"
               )}
             >
-              <item.icon className={cn("w-4 h-4 shrink-0", window.location.pathname === item.path ? "text-accent" : "text-slate-400 group-hover:text-accent transition-colors")} />
+              <item.icon className={cn("w-4 h-4 shrink-0", window.location.hash === `#${item.path}` ? "text-accent" : "text-slate-400 group-hover:text-accent transition-colors")} />
               {(!sidebarCollapsed || mobileSidebarOpen) && (
                 <span>{item.label}</span>
               )}
