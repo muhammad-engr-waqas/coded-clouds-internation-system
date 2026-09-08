@@ -17,7 +17,7 @@ services:
   - type: web
     name: ccims-backend
     runtime: node
-    rootDir: backend
+    rootDir: backend        # lowercase — matches actual folder name on disk
     buildCommand: npm install
     startCommand: npm start
     healthCheckPath: /api/health
@@ -54,7 +54,7 @@ services:
   - type: web
     name: ccims-frontend
     runtime: node
-    rootDir: Frontend
+    rootDir: Frontend       # capital F — matches actual folder name on disk
     buildCommand: npm install && npm run build
     startCommand: npm start
     healthCheckPath: /api/health
