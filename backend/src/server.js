@@ -76,32 +76,6 @@ app.use('/api/reports',       reportRoutes);
 app.use('/api/audit',         auditRoutes);
 app.use('/api/notifications', notificationRoutes);
 
-// ── Frontend SPA — serve React build ─────────────────────────────────────────
-// Render rootDir = backend/ so working directory at runtime = backend/
-// Frontend build output = ../Frontend/dist relative to backend/
-import fs from 'fs';
-
-const frontendDist = path.resolve(process.cwd(), '..', 'Frontend', 'dist');
-const indexHtml    = path.join(frontendDist, 'index.html');
-
-console.log('📁 Frontend dist path:', frontendDist);
-console.log('📄 index.html exists:', fs.existsSync(indexHtml));
-
-if (process.env.NODE_ENV === 'production' && fs.existsSync(indexHtml)) {
-  // Serve static assets (JS/CSS/images)
-  app.use(express.static(frontendDist, { index: false }));
-
-  // SPA fallback — every non-API, non-upload request → index.html
-  app.use((req, res, next) => {
-    if (req.path.startsWith('/api/') || req.path.startsWith('/uploads/')) {
-      return next();
-    }
-    res.sendFile(indexHtml);
-  });
-} else if (process.env.NODE_ENV === 'production') {
-  console.error('❌ Frontend dist not found at:', frontendDist);
-}
-
 // ── Error handling (must be last) ─────────────────────────────────────────────
 app.use(notFound);
 app.use(errorHandler);

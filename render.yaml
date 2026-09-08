@@ -1,17 +1,11 @@
-# render.yaml — Render.com Infrastructure as Code
-# Single web service: builds Frontend then starts Backend (which serves both API + SPA)
-
 services:
 
-  # ── Combined Backend + Frontend ────────────────────────────────────────────
+  # ── 1. Backend API (Node.js web service) ──────────────────────────────────
   - type: web
-    name: coded-clouds-internation-system
+    name: coded-clouds-internation-system-backend
     runtime: node
     rootDir: backend
-    # Build: install backend deps, then install and build frontend
-    # Render sets CWD to rootDir (backend/) during build AND runtime
-    buildCommand: npm install && cd ../Frontend && npm install && npm run build && echo "=== dist contents ===" && ls ../Frontend/dist
-    # Start: backend Express server serves both /api/* and the React SPA
+    buildCommand: npm install
     startCommand: npm start
     healthCheckPath: /api/health
     envVars:
@@ -39,7 +33,26 @@ services:
       - key: LATE_CUTOFF_TIME
         value: "09:15"
 
-  # ── Redis ─────────────────────────────────────────────────────────────────
+  # ── 2. Frontend React SPA (Static Site) ───────────────────────────────────
+  # Static Site type automatically serves _redirects file from dist/
+  # so /* → /index.html works on every page refresh.
+  - type: web
+    name: coded-clouds-internation-system
+    runtime: static
+    rootDir: Frontend
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+    headers:
+      - path: /*
+        name: Cache-Control
+        value: public, max-age=0, must-revalidate
+    envVars:
+      - key: VITE_API_URL
+        value: https://coded-clouds-internation-system-backend.onrender.com/api
+      - key: VITE_SOCKET_URL
+        value: https://coded-clouds-internation-system-backend.onrender.com
+
+  # ── 3. Redis ───────────────────────────────────────────────────────────────
   - type: redis
     name: ccims-redis
     plan: free
