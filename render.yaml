@@ -8,8 +8,9 @@ services:
     name: coded-clouds-internation-system
     runtime: node
     rootDir: backend
-    # Build: install backend deps + install frontend deps + build frontend
-    buildCommand: npm install && cd ../Frontend && npm install && npm run build
+    # Build: install backend deps, then install and build frontend
+    # Render sets CWD to rootDir (backend/) during build AND runtime
+    buildCommand: npm install && cd ../Frontend && npm install && npm run build && echo "=== dist contents ===" && ls ../Frontend/dist
     # Start: backend Express server serves both /api/* and the React SPA
     startCommand: npm start
     healthCheckPath: /api/health
