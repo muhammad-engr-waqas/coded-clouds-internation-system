@@ -15,11 +15,10 @@ let redisClient = null;
 if (process.env.REDIS_URL) {
   try {
     redisClient = new Redis(process.env.REDIS_URL, {
-      // Fail fast on connect so the app doesn't hang at startup
       connectTimeout: 5000,
-      maxRetriesPerRequest: 1,       // one retry per command, then throw
-      enableReadyCheck: true,
-      lazyConnect: false,
+      maxRetriesPerRequest: null,    // null = don't throw on retry exhaustion
+      enableReadyCheck: false,       // don't block commands until READY
+      lazyConnect: true,             // connect on first command, not at startup
       tls: process.env.REDIS_URL.startsWith('rediss://') ? {} : undefined,
     });
 
@@ -28,7 +27,7 @@ if (process.env.REDIS_URL) {
     );
 
     redisClient.on('error', (err) => {
-      // Log but never crash the process
+      // Log but never crash — all helpers return null/false on error
       console.error('⚠️  Redis error (falling back to DB):', err.message);
     });
 

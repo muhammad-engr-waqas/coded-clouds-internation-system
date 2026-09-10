@@ -1,4 +1,5 @@
 import Payroll from '../models/Payroll.js';
+import SalaryPayment from '../models/SalaryPayment.js';
 import User from '../models/User.js';
 import { currentMonthStr } from '../utils/dateHelpers.js';
 import { notifyUser } from '../utils/notify.js';
@@ -39,21 +40,36 @@ export const getPayroll = async (req, res) => {
 
   const rows = await Payroll.find(query).populate('userId', 'fullName role department avatarUrl');
 
-  const totalNet = rows.reduce((s, r) => s + r.netSalary, 0);
-  const totalPaid = rows.filter((r) => r.status === 'Paid').reduce((s, r) => s + r.netSalary, 0);
-  const totalPending = rows.filter((r) => r.status !== 'Paid').reduce((s, r) => s + r.netSalary, 0);
-  const totalBonus = rows.reduce((s, r) => s + r.bonus, 0);
-  const totalDeductions = rows.reduce((s, r) => s + r.deductions, 0);
+  // Attach payment history + totalPaid to each row
+  const rowIds = rows.map(r => r._id);
+  const allPayments = await SalaryPayment.find({ payrollId: { $in: rowIds } }).sort({ createdAt: 1 });
+  const paymentsByRow = {};
+  for (const p of allPayments) {
+    const key = p.payrollId.toString();
+    if (!paymentsByRow[key]) paymentsByRow[key] = [];
+    paymentsByRow[key].push(p);
+  }
+
+  const enrichedRows = rows.map(r => {
+    const pmts = paymentsByRow[r._id.toString()] || [];
+    return { ...r.toObject(), payments: pmts, totalPaid: pmts.reduce((s, p) => s + p.amount, 0) };
+  });
+
+  const totalNet = enrichedRows.reduce((s, r) => s + r.netSalary, 0);
+  const totalPaid = enrichedRows.reduce((s, r) => s + (r.totalPaid || 0), 0);
+  const totalPending = enrichedRows.reduce((s, r) => s + Math.max(0, r.netSalary - (r.totalPaid || 0)), 0);
+  const totalBonus = enrichedRows.reduce((s, r) => s + r.bonus, 0);
+  const totalDeductions = enrichedRows.reduce((s, r) => s + r.deductions, 0);
 
   res.json({
     month,
-    rows,
+    rows: enrichedRows,
     summary: {
       totalPayroll: totalNet,
       totalPaid,
       totalPending,
-      paidCount: rows.filter((r) => r.status === 'Paid').length,
-      pendingCount: rows.filter((r) => r.status !== 'Paid').length,
+      paidCount: enrichedRows.filter(r => r.status === 'Paid').length,
+      pendingCount: enrichedRows.filter(r => r.status !== 'Paid').length,
       totalBonus,
       totalDeductions,
     },

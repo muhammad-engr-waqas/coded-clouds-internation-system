@@ -73,8 +73,9 @@ export function AttendanceManagement() {
   const isAdminOrHR = user?.role === 'Admin' || user?.role === 'HR';
   
   const [activeTab, setActiveTab] = useState<'MyAttendance' | 'CompanyAttendance'>(isAdminOrHR ? 'CompanyAttendance' : 'MyAttendance');
-  const [selectedMonth, setSelectedMonth] = useState('08');
-  const [selectedYear, setSelectedYear] = useState('2026');
+  // Default to current month/year — not hardcoded
+  const [selectedMonth, setSelectedMonth] = useState(() => String(new Date().getMonth() + 1).padStart(2, '0'));
+  const [selectedYear,  setSelectedYear]  = useState(() => String(new Date().getFullYear()));
   const [history, setHistory] = useState<any[]>([]);
   const [companyAttendance, setCompanyAttendance] = useState<any[]>([]);
   const [companySearch, setCompanySearch] = useState('');

@@ -20,6 +20,7 @@ import { ProjectManagement } from './pages/ProjectManagement';
 import { LeaveManagement } from './pages/LeaveManagement';
 import AdminSettings from './pages/AdminSettings';
 import ReportsDashboard from './pages/ReportsDashboard';
+import { ErrorBoundary } from './components/ErrorBoundary';
 
 // ── Hash-based routing helper ──────────────────────────────────────────────
 // We use window.location.hash (#/admin/employees) instead of pathname so that
@@ -109,7 +110,9 @@ export default function App() {
 
   return (
     <Shell>
-      {renderDashboard()}
+      <ErrorBoundary label={currentPath}>
+        {renderDashboard()}
+      </ErrorBoundary>
     </Shell>
   );
 }

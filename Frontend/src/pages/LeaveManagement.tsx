@@ -44,11 +44,20 @@ export function LeaveManagement() {
     try {
       if (isAdminOrHR) {
         const leaves = await api.leave.all();
-        // flatten populated userId into userName/userRole for the existing UI
-        setRequests(leaves.map((l: any) => ({ ...l, userName: l.userId?.fullName, userRole: l.userId?.role, userId: l.userId?.id })));
+        setRequests((leaves ?? []).map((l: any) => ({
+          ...l,
+          userName: l.userId?.fullName ?? l.userName ?? 'Unknown',
+          userRole: l.userId?.role     ?? l.userRole ?? '',
+          userId:   l.userId?.id       ?? l.userId   ?? '',
+        })));
       } else {
-        const { leaves } = await api.leave.mine();
-        setRequests(leaves.map((l: any) => ({ ...l, userName: user?.fullName, userRole: user?.role })));
+        const res = await api.leave.mine();
+        const leaves = res?.leaves ?? res ?? [];
+        setRequests((Array.isArray(leaves) ? leaves : []).map((l: any) => ({
+          ...l,
+          userName: user?.fullName ?? 'Unknown',
+          userRole: user?.role     ?? '',
+        })));
       }
     } catch (err) {
       console.error(err);
@@ -87,8 +96,10 @@ export function LeaveManagement() {
 
   const filteredRequests = requests.filter(r => {
     const matchesFilter = activeFilter ? r.status === activeFilter : true;
-    const matchesSearch = r.userName.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                         r.leaveType.toLowerCase().includes(searchQuery.toLowerCase());
+    const name = (r.userName ?? '').toLowerCase();
+    const type = (r.leaveType ?? '').toLowerCase();
+    const q    = searchQuery.toLowerCase();
+    const matchesSearch = name.includes(q) || type.includes(q);
     return matchesFilter && matchesSearch;
   });
 
@@ -214,10 +225,10 @@ export function LeaveManagement() {
               <div className="flex items-start justify-between mb-4">
                 <div className="flex items-center gap-3">
                   <div className="w-9 h-9 rounded-xl bg-accent/5 flex items-center justify-center text-accent text-xs font-black">
-                    {req.userName.charAt(0)}
+                    {(req.userName ?? '?').charAt(0)}
                   </div>
                   <div>
-                    <p className="text-xs font-black tracking-tight">{req.userName}</p>
+                    <p className="text-xs font-black tracking-tight">{req.userName ?? 'Unknown'}</p>
                     <p className="text-[9px] font-bold opacity-30 uppercase tracking-widest">{req.userRole}</p>
                   </div>
                 </div>

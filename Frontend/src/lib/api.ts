@@ -136,6 +136,9 @@ export const api = {
     update: (id: string, payload: any) => request(`/payroll/${id}`, { method: 'PATCH', body: payload }),
     setStatus: (id: string, status: string) => request(`/payroll/${id}/status`, { method: 'PATCH', body: { status } }),
     payslip: (id: string) => request(`/payroll/${id}/payslip`),
+    addPayment: (id: string, payload: { amount: number; method?: string; note?: string }) =>
+      request(`/payroll/${id}/payments`, { method: 'POST', body: payload }),
+    getPayments: (id: string) => request(`/payroll/${id}/payments`),
   },
 
   // ---------------- Projects (Admin only) ----------------

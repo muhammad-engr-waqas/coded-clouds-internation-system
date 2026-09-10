@@ -38,7 +38,8 @@ export function AssignTaskModal({ onClose, onSuccess }: AssignTaskModalProps) {
 
   const fetchEmployees = async () => {
     try {
-      const { employees: list } = await api.employees.list({ limit: '200' });
+      const data = await api.employees.list({ limit: '200' });
+      const list = Array.isArray(data) ? data : (data.employees ?? []);
       setEmployees(list);
     } catch (err) {
       console.error(err);
@@ -47,7 +48,9 @@ export function AssignTaskModal({ onClose, onSuccess }: AssignTaskModalProps) {
 
   const fetchProjects = async () => {
     try {
-      const { projects: list } = await api.projects.list();
+      const data = await api.projects.list();
+      // api.projects.list() returns { projects: [...] } OR plain array depending on backend
+      const list = Array.isArray(data) ? data : (data.projects ?? []);
       setProjects(list);
     } catch (err) {
       console.error(err);
