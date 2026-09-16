@@ -246,20 +246,39 @@ function generatePayslipPDF(row: PayrollRow, companyName = 'Coded Clouds') {
   doc.save(`Payslip_${emp?.fullName?.replace(/\s+/g, '_') ?? 'Employee'}_${row.month}.pdf`);
 }
 
-// ─── Inline number input (no value-disappear bug) ─────────────────────────────
-function PayrollInput({ value, onCommit }: { value: number; onCommit: (v: number) => void }) {
+// ─── Inline number input — real-time net salary preview ──────────────────────
+// Typing karo → onChange se parent ko instantly notify karo (preview)
+// "Pay" button press → onCommit se DB mein save hota hai
+function PayrollInput({ value, onChange, className = '' }: {
+  value: number;
+  onChange: (v: number) => void;
+  className?: string;
+}) {
   const [raw, setRaw] = useState(String(value));
+
+  // Sync when server pushes an update
   useEffect(() => { setRaw(String(value)); }, [value]);
+
   return (
-    <input type="number" min={0} value={raw}
-      onChange={e => setRaw(e.target.value)}
+    <input
+      type="number"
+      min={0}
+      value={raw}
+      onChange={e => {
+        setRaw(e.target.value);
+        const n = parseFloat(e.target.value);
+        if (Number.isFinite(n) && n >= 0) onChange(n);
+      }}
       onBlur={() => {
         const n = parseFloat(raw);
         const safe = Number.isFinite(n) && n >= 0 ? n : value;
         setRaw(String(safe));
-        if (safe !== value) onCommit(safe);
+        if (safe !== value) onChange(safe);
       }}
-      className="w-24 bg-[var(--background)] border border-[var(--border-light)] rounded-lg px-2 py-1 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-accent/10"
+      className={cn(
+        'w-24 bg-[var(--background)] border border-[var(--border-light)] rounded-lg px-2 py-1 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-blue-300 transition-all',
+        className
+      )}
     />
   );
 }
@@ -416,18 +435,53 @@ function EmployeePayrollDetail({ row, onClose, onUpdate }: {
   onClose: () => void;
   onUpdate: (updated: PayrollRow) => void;
 }) {
-  const [showModal, setShowModal] = useState(false);
-  const totalPaid       = row.totalPaid       ?? 0;
-  const totalDeductions = row.totalDeductions  ?? 0;
-  const remaining       = Math.max(0, row.netSalary - totalPaid);
-  const payments        = [...(row.payments ?? [])].sort(
+  const [showModal,   setShowModal]   = useState(false);
+  // Keep a local copy so real-time updates inside the panel work
+  const [localRow,    setLocalRow]    = useState<PayrollRow>(row);
+  const [loadingPmts, setLoadingPmts] = useState(false);
+
+  // Sync whenever parent row prop changes (e.g. socket update from main list)
+  useEffect(() => { setLocalRow(row); }, [row]);
+
+  // Fetch fresh payments when panel opens (list may have stale/empty payments)
+  useEffect(() => {
+    let cancelled = false;
+    setLoadingPmts(true);
+    api.payroll.getPayments(row.id)
+      .then((data: any) => {
+        if (cancelled) return;
+        const pmts          = Array.isArray(data) ? data : (data.payments ?? []);
+        const totalPaid     = data.totalPaid ?? pmts.reduce((s: number, p: any) => s + (p.amount || 0), 0);
+        const totalDed      = data.totalDeductions ?? pmts.reduce((s: number, p: any) => s + (p.deductionAmount || 0), 0);
+        const remaining     = Math.max(0, row.netSalary - totalPaid);
+        const computedStatus = totalPaid >= row.netSalary - 0.01 ? 'Paid' :
+                               totalPaid > 0 ? 'Partial' : 'Pending';
+        const updated = { ...row, payments: pmts, totalPaid, totalDeductions: totalDed, remainingBalance: remaining, computedStatus };
+        setLocalRow(updated);
+        onUpdate(updated);
+      })
+      .catch(() => {/* use whatever is in row.payments */})
+      .finally(() => { if (!cancelled) setLoadingPmts(false); });
+    return () => { cancelled = true; };
+  }, [row.id]);
+
+  const totalPaid       = localRow.totalPaid       ?? 0;
+  const totalDeductions = localRow.totalDeductions  ?? 0;
+  const remaining       = Math.max(0, localRow.netSalary - totalPaid);
+  const payments        = [...(localRow.payments ?? [])].sort(
     (a, b) => new Date(b.paidAt ?? b.createdAt ?? 0).getTime() - new Date(a.paidAt ?? a.createdAt ?? 0).getTime()
   );
 
-  const computedStatus = row.computedStatus ?? (
-    totalPaid >= row.netSalary - 0.01 ? 'Paid' :
+  const computedStatus = localRow.computedStatus ?? (
+    totalPaid >= localRow.netSalary - 0.01 ? 'Paid' :
     totalPaid > 0 ? 'Partial' : 'Pending'
   );
+
+  const handleAdded = (updated: PayrollRow) => {
+    setLocalRow(updated);
+    onUpdate(updated);
+    setShowModal(false);
+  };
 
   return (
     <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-6 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
@@ -438,16 +492,16 @@ function EmployeePayrollDetail({ row, onClose, onUpdate }: {
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-4">
               <div className="w-14 h-14 rounded-2xl bg-white/20 flex items-center justify-center text-white font-black text-xl">
-                {(row.userId?.fullName ?? '?').charAt(0)}
+                {(localRow.userId?.fullName ?? '?').charAt(0)}
               </div>
               <div>
-                <h2 className="text-white font-black text-xl tracking-tight">{row.userId?.fullName}</h2>
-                <p className="text-blue-200 text-xs mt-0.5">{row.userId?.designation ?? row.userId?.role} · {row.userId?.department}</p>
-                <p className="text-blue-300 text-[10px] mt-1 uppercase tracking-widest">{row.month}</p>
+                <h2 className="text-white font-black text-xl tracking-tight">{localRow.userId?.fullName}</h2>
+                <p className="text-blue-200 text-xs mt-0.5">{localRow.userId?.designation ?? localRow.userId?.role} · {localRow.userId?.department}</p>
+                <p className="text-blue-300 text-[10px] mt-1 uppercase tracking-widest">{localRow.month}</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <button onClick={() => generatePayslipPDF(row)}
+              <button onClick={() => generatePayslipPDF(localRow)}
                 className="flex items-center gap-2 px-4 py-2 bg-white/20 hover:bg-white/30 text-white text-xs font-black uppercase tracking-widest rounded-xl transition-colors">
                 <FileText className="w-4 h-4" /> PDF Payslip
               </button>
@@ -503,10 +557,10 @@ function EmployeePayrollDetail({ row, onClose, onUpdate }: {
             <div className="p-5">
               <div className="grid grid-cols-2 gap-3 text-sm">
                 {[
-                  ['Basic Salary',       row.basicSalary,  false],
-                  ['Allowances',         row.allowances,   false],
-                  ['Bonus',              row.bonus,        false],
-                  ['Fixed Deductions',   row.deductions,   true],
+                  ['Basic Salary',       localRow.basicSalary,  false],
+                  ['Allowances',         localRow.allowances,   false],
+                  ['Bonus',              localRow.bonus,        false],
+                  ['Fixed Deductions',   localRow.deductions,   true],
                 ].map(([label, val, isDeduction]) => (
                   <div key={String(label)} className="flex items-center justify-between py-2 border-b border-[var(--border-light)]">
                     <span className="text-[11px] font-bold opacity-60">{String(label)}</span>
@@ -517,7 +571,7 @@ function EmployeePayrollDetail({ row, onClose, onUpdate }: {
                 ))}
                 <div className="col-span-2 flex items-center justify-between pt-3">
                   <span className="text-sm font-black">Net Salary</span>
-                  <span className="text-sm font-black text-blue-600">PKR {row.netSalary.toLocaleString()}</span>
+                  <span className="text-sm font-black text-blue-600">PKR {localRow.netSalary.toLocaleString()}</span>
                 </div>
               </div>
             </div>
@@ -526,7 +580,13 @@ function EmployeePayrollDetail({ row, onClose, onUpdate }: {
           {/* Payment History Table */}
           <div className="bg-[var(--surface)] rounded-2xl border border-[var(--border-light)] overflow-hidden">
             <div className="px-5 py-4 border-b border-[var(--border-light)] flex items-center justify-between">
-              <h3 className="text-sm font-black uppercase tracking-widest">Payment History</h3>
+              <div className="flex items-center gap-3">
+                <h3 className="text-sm font-black uppercase tracking-widest">Payment History</h3>
+                {loadingPmts && <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-400" />}
+                <span className="text-[10px] font-black text-blue-500 bg-blue-50 px-2 py-0.5 rounded-full">
+                  {payments.length} payment{payments.length !== 1 ? 's' : ''}
+                </span>
+              </div>
               {remaining > 0 && (
                 <button onClick={() => setShowModal(true)}
                   className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-xs font-black uppercase tracking-widest rounded-xl shadow-lg shadow-blue-200 hover:bg-blue-700 transition-colors">
@@ -609,9 +669,9 @@ function EmployeePayrollDetail({ row, onClose, onUpdate }: {
 
       {showModal && (
         <AddPaymentModal
-          row={row}
+          row={localRow}
           onClose={() => setShowModal(false)}
-          onAdded={(updated) => { onUpdate(updated); setShowModal(false); }}
+          onAdded={handleAdded}
         />
       )}
     </div>
@@ -642,6 +702,12 @@ export function PayrollManagement() {
   const [statusFilter, setStatusFilter] = useState('');
   const [generating, setGenerating] = useState(false);
   const [detailRow,  setDetailRow]  = useState<PayrollRow | null>(null);
+  // Per-row pending edits — tracks what user has typed but not yet saved
+  // Key = rowId, value = { allowances, bonus, deductions, netSalary, amountPaid }
+  const [pendingEdits, setPendingEdits] = useState<Record<string, {
+    allowances: number; bonus: number; deductions: number; netSalary: number; amountPaid: string;
+  }>>({});
+  const [savingIds, setSavingIds] = useState<Set<string>>(new Set());
 
   const now = new Date();
   const [selectedMonth, setSelectedMonth] = useState(String(now.getMonth() + 1).padStart(2, '0'));
@@ -689,13 +755,109 @@ export function PayrollManagement() {
     return () => { socket?.off('payroll:updated', onUpdated); socket?.off('payroll:generated', onGenerated); };
   }, [month, fetchPayroll]);
 
-  const saveField = async (id: string, field: 'allowances' | 'bonus' | 'deductions', value: number) => {
+  // Called on every keystroke in Allowances/Bonus/Deductions inputs
+  // Updates local preview only — does NOT hit the DB yet
+  const handleFieldChange = (id: string, field: 'allowances' | 'bonus' | 'deductions' | 'amountPaid', value: number | string) => {
+    const row = rows.find(r => r.id === id);
+    if (!row) return;
+    const current = pendingEdits[id] ?? {
+      allowances: row.allowances,
+      bonus:      row.bonus,
+      deductions: row.deductions,
+      netSalary:  row.netSalary,
+      amountPaid: '',
+    };
+    if (field === 'amountPaid') {
+      setPendingEdits(prev => ({ ...prev, [id]: { ...current, amountPaid: String(value) } }));
+      return;
+    }
+    const next = { ...current, [field]: value as number };
+    next.netSalary = row.basicSalary + next.allowances + next.bonus - next.deductions;
+    setPendingEdits(prev => ({ ...prev, [id]: next }));
+  };
+
+  // "Pay" button — saves pending edits to DB + records amountPaid as a payment
+  const handlePay = async (p: PayrollRow) => {
+    const edits = pendingEdits[p.id];
+    const hasFieldEdits = edits && (
+      edits.allowances !== p.allowances ||
+      edits.bonus      !== p.bonus      ||
+      edits.deductions !== p.deductions
+    );
+    const amtRaw    = parseFloat(edits?.amountPaid ?? '');
+    const hasAmount = Number.isFinite(amtRaw) && amtRaw > 0;
+
+    if (!hasFieldEdits && !hasAmount) {
+      // Nothing to save — just open detail panel
+      setDetailRow(p);
+      return;
+    }
+
+    setSavingIds(prev => new Set(prev).add(p.id));
+    setError('');
+
     try {
-      const updated = await api.payroll.update(id, { [field]: value });
-      setRows(prev => prev.map(r => r.id === id ? { ...r, ...updated, payments: r.payments, totalPaid: r.totalPaid, totalDeductions: r.totalDeductions } : r));
+      let updatedRow = p;
+
+      // 1. Save allowances/bonus/deductions if changed
+      if (hasFieldEdits) {
+        const saved = await api.payroll.update(p.id, {
+          allowances: edits.allowances,
+          bonus:      edits.bonus,
+          deductions: edits.deductions,
+        });
+        updatedRow = {
+          ...saved,
+          payments:        saved.payments        ?? p.payments        ?? [],
+          totalPaid:       saved.totalPaid       ?? p.totalPaid       ?? 0,
+          totalDeductions: saved.totalDeductions ?? p.totalDeductions ?? 0,
+          remainingBalance:saved.remainingBalance?? p.remainingBalance?? 0,
+          computedStatus:  saved.computedStatus  ?? p.computedStatus,
+        };
+        setRows(prev => prev.map(r => r.id === p.id ? updatedRow : r));
+      }
+
+      // 2. Record the amount paid as a payment entry
+      if (hasAmount) {
+        const remaining = Math.max(0, updatedRow.netSalary - (updatedRow.totalPaid ?? 0));
+        if (amtRaw > remaining + 0.01) {
+          setError(`Amount (PKR ${amtRaw.toLocaleString()}) exceeds remaining salary (PKR ${remaining.toLocaleString()})`);
+          return;
+        }
+        const withPayment = await api.payroll.addPayment(p.id, {
+          amount: amtRaw,
+          method: 'Bank Transfer',
+          note: '',
+        });
+        updatedRow = {
+          ...withPayment,
+          payments:        withPayment.payments        ?? updatedRow.payments        ?? [],
+          totalPaid:       withPayment.totalPaid       ?? updatedRow.totalPaid       ?? 0,
+          totalDeductions: withPayment.totalDeductions ?? updatedRow.totalDeductions ?? 0,
+          remainingBalance:withPayment.remainingBalance?? updatedRow.remainingBalance?? 0,
+          computedStatus:  withPayment.computedStatus  ?? updatedRow.computedStatus,
+        };
+        setRows(prev => prev.map(r => r.id === p.id ? updatedRow : r));
+      }
+
+      // Clear pending edits
+      setPendingEdits(prev => {
+        const next = { ...prev };
+        delete next[p.id];
+        return next;
+      });
+
+      // Open detail panel to show history
+      setDetailRow(updatedRow);
     } catch (e: any) {
       setError(e?.message || 'Failed to save');
       fetchPayroll();
+    } finally {
+      setSavingIds(prev => {
+        const next = new Set(prev);
+        next.delete(p.id);
+        return next;
+      });
     }
   };
 
@@ -864,7 +1026,8 @@ export function PayrollManagement() {
                 <th className="px-5 py-4">Allowances</th>
                 <th className="px-5 py-4">Bonus</th>
                 <th className="px-5 py-4">Deductions</th>
-                <th className="px-5 py-4">Paid</th>
+                <th className="px-5 py-4">Amount Paid</th>
+                <th className="px-5 py-4">Total Paid</th>
                 <th className="px-5 py-4">Remaining</th>
                 <th className="px-5 py-4">Status</th>
                 <th className="px-5 py-4 text-right">Actions</th>
@@ -872,24 +1035,40 @@ export function PayrollManagement() {
             </thead>
             <tbody className="divide-y divide-[var(--border-light)]">
               {isLoading ? (
-                <tr><td colSpan={9} className="py-20 text-center">
+                <tr><td colSpan={10} className="py-20 text-center">
                   <Loader2 className="w-8 h-8 animate-spin mx-auto text-blue-500 mb-2" />
                   <p className="text-xs font-bold opacity-40">Loading payroll data...</p>
                 </td></tr>
               ) : filteredRows.length === 0 ? (
-                <tr><td colSpan={9} className="py-20 text-center opacity-30">
+                <tr><td colSpan={10} className="py-20 text-center opacity-30">
                   <DollarSign className="w-10 h-10 mx-auto mb-3" />
                   <p className="text-xs font-black uppercase tracking-widest">No records — click "Generate Payroll"</p>
                 </td></tr>
               ) : filteredRows.map(p => {
+                const edits      = pendingEdits[p.id];
+                const allowances = edits?.allowances ?? p.allowances;
+                const bonus      = edits?.bonus      ?? p.bonus;
+                const deductions = edits?.deductions ?? p.deductions;
+                const amountPaid = edits?.amountPaid ?? '';
+                // Real-time net = basic + allowances + bonus - deductions
+                const previewNet = p.basicSalary + allowances + bonus - deductions;
+                const isDirty    = !!edits && (
+                  edits.allowances !== p.allowances ||
+                  edits.bonus      !== p.bonus      ||
+                  edits.deductions !== p.deductions  ||
+                  (edits.amountPaid ?? '') !== ''
+                );
+                const isSaving   = savingIds.has(p.id);
                 const totalPaid  = p.totalPaid ?? 0;
-                const remaining  = Math.max(0, p.netSalary - totalPaid);
+                // Preview remaining: subtract typed amountPaid too
+                const typedAmt   = parseFloat(amountPaid) || 0;
+                const remaining  = Math.max(0, previewNet - totalPaid - typedAmt);
                 const dispStatus = p.computedStatus ?? (totalPaid >= p.netSalary - 0.01 ? 'Paid' : totalPaid > 0 ? 'Partial' : 'Pending');
 
                 return (
-                  <tr key={p.id} className="hover:bg-[var(--background)]/30 transition-colors group cursor-pointer"
-                    onClick={() => setDetailRow(p)}>
-                    <td className="px-5 py-4">
+                  <tr key={p.id} className="hover:bg-[var(--background)]/30 transition-colors group">
+                    {/* Employee */}
+                    <td className="px-5 py-4 cursor-pointer" onClick={() => setDetailRow(p)}>
                       <div className="flex items-center gap-3">
                         <div className="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600 font-black text-sm">
                           {(p.userId?.fullName ?? '?').charAt(0)}
@@ -900,43 +1079,117 @@ export function PayrollManagement() {
                         </div>
                       </div>
                     </td>
-                    <td className="px-5 py-4 text-xs font-black text-blue-600">PKR {p.netSalary.toLocaleString()}</td>
-                    <td className="px-5 py-4" onClick={e => e.stopPropagation()}>
-                      <PayrollInput value={p.allowances} onCommit={v => saveField(p.id, 'allowances', v)} />
+
+                    {/* Net Salary — real-time preview */}
+                    <td className="px-5 py-4">
+                      <div>
+                        <p className={cn('text-sm font-black transition-colors', isDirty ? 'text-blue-600' : 'text-[var(--text)]')}>
+                          PKR {previewNet.toLocaleString()}
+                        </p>
+                        <p className="text-[9px] opacity-30 uppercase tracking-widest">
+                          Basic: PKR {p.basicSalary.toLocaleString()}
+                        </p>
+                      </div>
                     </td>
-                    <td className="px-5 py-4" onClick={e => e.stopPropagation()}>
-                      <PayrollInput value={p.bonus} onCommit={v => saveField(p.id, 'bonus', v)} />
+
+                    {/* Allowances */}
+                    <td className="px-5 py-4">
+                      <PayrollInput
+                        value={allowances}
+                        onChange={v => handleFieldChange(p.id, 'allowances', v)}
+                        className={isDirty && allowances !== p.allowances ? 'border-blue-300 bg-blue-50' : ''}
+                      />
                     </td>
-                    <td className="px-5 py-4" onClick={e => e.stopPropagation()}>
-                      <PayrollInput value={p.deductions} onCommit={v => saveField(p.id, 'deductions', v)} />
+
+                    {/* Bonus */}
+                    <td className="px-5 py-4">
+                      <PayrollInput
+                        value={bonus}
+                        onChange={v => handleFieldChange(p.id, 'bonus', v)}
+                        className={isDirty && bonus !== p.bonus ? 'border-blue-300 bg-blue-50' : ''}
+                      />
                     </td>
+
+                    {/* Deductions */}
+                    <td className="px-5 py-4">
+                      <PayrollInput
+                        value={deductions}
+                        onChange={v => handleFieldChange(p.id, 'deductions', v)}
+                        className={isDirty && deductions !== p.deductions ? 'border-orange-300 bg-orange-50' : ''}
+                      />
+                    </td>
+
+                    {/* ── Amount Paid input — type salary to disburse ── */}
+                    <td className="px-5 py-4">
+                      <input
+                        type="number"
+                        min={0}
+                        max={Math.max(0, previewNet - totalPaid)}
+                        placeholder="0"
+                        value={amountPaid}
+                        onChange={e => handleFieldChange(p.id, 'amountPaid', e.target.value)}
+                        className={cn(
+                          'w-28 rounded-lg px-2 py-1 text-xs font-bold focus:outline-none focus:ring-2 transition-all border',
+                          amountPaid && parseFloat(amountPaid) > 0
+                            ? 'border-green-400 bg-green-50 text-green-700 focus:ring-green-200'
+                            : 'border-[var(--border-light)] bg-[var(--background)] focus:ring-blue-200'
+                        )}
+                      />
+                      {amountPaid && parseFloat(amountPaid) > 0 && (
+                        <p className="text-[9px] text-green-600 font-bold mt-0.5">
+                          After: PKR {remaining.toLocaleString()} left
+                        </p>
+                      )}
+                    </td>
+
+                    {/* Total Paid so far */}
                     <td className="px-5 py-4">
                       <span className="text-xs font-black text-green-600">PKR {totalPaid.toLocaleString()}</span>
                     </td>
+
+                    {/* Remaining */}
                     <td className="px-5 py-4">
                       <span className={cn('text-xs font-black', remaining > 0 ? 'text-orange-500' : 'text-green-600')}>
                         PKR {remaining.toLocaleString()}
                       </span>
                     </td>
+
+                    {/* Status */}
                     <td className="px-5 py-4">
                       <StatusBadge status={dispStatus} />
                     </td>
-                    <td className="px-5 py-4 text-right" onClick={e => e.stopPropagation()}>
-                      <div className="flex items-center justify-end gap-1">
+
+                    {/* Actions */}
+                    <td className="px-5 py-4 text-right">
+                      <div className="flex items-center justify-end gap-1.5">
+                        {/* PAY button */}
+                        <button
+                          onClick={() => handlePay(p)}
+                          disabled={isSaving}
+                          className={cn(
+                            'flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all disabled:opacity-50',
+                            isDirty
+                              ? 'bg-green-500 text-white shadow-lg shadow-green-200 hover:bg-green-600'
+                              : 'bg-[var(--surface)] border border-[var(--border)] text-[var(--text)]/40 hover:border-blue-300 hover:text-blue-500'
+                          )}
+                          title="Save & record payment"
+                        >
+                          {isSaving
+                            ? <Loader2 className="w-3 h-3 animate-spin" />
+                            : <CheckCircle2 className="w-3 h-3" />
+                          }
+                          {isSaving ? 'Saving…' : 'Pay'}
+                        </button>
+
                         <button onClick={() => setDetailRow(p)}
                           className="p-1.5 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition-colors text-[var(--text)]/30"
-                          title="View details & payment history">
+                          title="Payment history">
                           <History className="w-4 h-4" />
                         </button>
                         <button onClick={() => generatePayslipPDF(p)}
                           className="p-1.5 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition-colors text-[var(--text)]/30"
-                          title="Download PDF payslip">
+                          title="Download payslip PDF">
                           <FileText className="w-4 h-4" />
-                        </button>
-                        <button onClick={() => handleExportCsv()}
-                          className="p-1.5 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition-colors text-[var(--text)]/30"
-                          title="Export CSV">
-                          <Download className="w-4 h-4" />
                         </button>
                       </div>
                     </td>

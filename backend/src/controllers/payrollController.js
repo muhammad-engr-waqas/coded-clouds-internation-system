@@ -5,6 +5,25 @@ import { currentMonthStr } from '../utils/dateHelpers.js';
 import { notifyUser } from '../utils/notify.js';
 import { logAudit } from '../utils/audit.js';
 
+// Helper — attach payments + calculated totals to any payroll row object
+async function enrichRow(row) {
+  const payments = await SalaryPayment.find({ payrollId: row._id })
+    .sort({ paidAt: -1, createdAt: -1 });
+  const totalPaid       = payments.reduce((s, p) => s + (p.amount || 0), 0);
+  const totalDeductions = payments.reduce((s, p) => s + (p.deductionAmount || 0), 0);
+  const remainingBalance = Math.max(0, (row.netSalary || 0) - totalPaid);
+  const computedStatus = totalPaid >= (row.netSalary || 0) - 0.01
+    ? 'Paid' : totalPaid > 0 ? 'Processing' : 'Pending';
+  return {
+    ...row.toObject(),
+    payments,
+    totalPaid,
+    totalDeductions,
+    remainingBalance,
+    computedStatus,
+  };
+}
+
 // @route POST /api/payroll/generate?month=YYYY-MM
 // Access: Admin, HR — creates payroll rows for all active employees using their current basicSalary
 export const generatePayroll = async (req, res) => {
@@ -97,11 +116,11 @@ export const updatePayrollRow = async (req, res) => {
 
   await row.save(); // pre-save hook recalculates netSalary
 
-  // Real-time: push the authoritative, backend-calculated row to every connected Admin/HR
-  // client so gross/net numbers update live without a page refresh (see spec section 6).
-  req.app.get('io')?.emit('payroll:updated', row);
+  // Enrich with payment history before broadcasting — so UI never loses totalPaid/payments
+  const enriched = await enrichRow(row);
+  req.app.get('io')?.emit('payroll:updated', enriched);
 
-  res.json(row);
+  res.json(enriched);
 };
 
 // @route PATCH /api/payroll/:id/status
@@ -128,7 +147,8 @@ export const updatePayrollStatus = async (req, res) => {
     targetId: row._id,
   });
 
-  req.app.get('io')?.emit('payroll:updated', row);
+  const enriched = await enrichRow(row);
+  req.app.get('io')?.emit('payroll:updated', enriched);
 
   if (status === 'Paid') {
     const io = req.app.get('io');
@@ -140,7 +160,7 @@ export const updatePayrollStatus = async (req, res) => {
     });
   }
 
-  res.json(row);
+  res.json(enriched);
 };
 
 // @route GET /api/payroll/:id/payslip
