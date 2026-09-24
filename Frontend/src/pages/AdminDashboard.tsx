@@ -20,6 +20,7 @@ import {
   Cell
 } from 'recharts';
 import { useAppStore } from '@/src/store';
+import { formatDate } from '@/src/lib/formatDate';
 import { cn } from '@/src/lib/utils';
 import { api } from '@/src/lib/api';
 
@@ -190,7 +191,7 @@ export function AdminDashboard() {
                   <div key={leave.id} className="p-6 hover:bg-slate-50 transition-all cursor-pointer group">
                     <div className="flex items-start justify-between mb-2">
                        <span className="text-[9px] font-black uppercase tracking-widest text-accent">Leave</span>
-                       <span className="text-[9px] font-bold opacity-30">{new Date(leave.createdAt).toLocaleDateString([], { month: 'short', day: 'numeric' })}</span>
+                       <span className="text-[9px] font-bold opacity-30">{formatDate(leave.createdAt, 'monthDay')}</span>
                     </div>
                     <h4 className="text-sm font-black tracking-tight group-hover:text-accent transition-colors">Approve Leave: {leave.userId?.fullName}</h4>
                     <p className="text-[10px] font-medium opacity-40 mt-1">{leave.leaveType} • {leave.totalDays} day(s)</p>

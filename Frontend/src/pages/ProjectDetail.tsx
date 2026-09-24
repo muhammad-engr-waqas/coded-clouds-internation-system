@@ -21,6 +21,7 @@ import {
 import { cn } from '@/src/lib/utils';
 import { Project, ProjectStatus, User } from '@/src/types';
 import { api } from '@/src/lib/api';
+import { formatDate } from '@/src/lib/formatDate';
 
 interface ProjectDetailProps {
   projectId: string;
@@ -354,14 +355,14 @@ export function ProjectDetail({ projectId, onBack, isAdmin }: ProjectDetailProps
                     <h3 className="text-[10px] font-black uppercase tracking-widest opacity-30">Start Date</h3>
                     <div className="flex items-center gap-2">
                       <Calendar className="w-4 h-4 text-accent" />
-                      <p className="text-sm font-black">{new Date(project.startDate).toLocaleDateString([], { month: 'long', day: 'numeric', year: 'numeric' })}</p>
+                      <p className="text-sm font-black">{formatDate(project.startDate, 'long')}</p>
                     </div>
                   </div>
                   <div className="space-y-3">
                     <h3 className="text-[10px] font-black uppercase tracking-widest opacity-30">End Date</h3>
                     <div className="flex items-center gap-2">
                       <Clock className="w-4 h-4 text-accent" />
-                      <p className="text-sm font-black">{project.endDate ? new Date(project.endDate).toLocaleDateString([], { month: 'long', day: 'numeric', year: 'numeric' }) : 'Ongoing'}</p>
+                      <p className="text-sm font-black">{project.endDate ? formatDate(project.endDate, 'long') : 'Ongoing'}</p>
                     </div>
                   </div>
                 </div>
@@ -425,7 +426,7 @@ export function ProjectDetail({ projectId, onBack, isAdmin }: ProjectDetailProps
                     </button>
                     <div className="flex-1">
                       <p className="text-sm font-black">{m.title}</p>
-                      <p className="text-[10px] font-bold opacity-30 uppercase tracking-widest mt-1">Due: {new Date(m.dueDate).toLocaleDateString()}</p>
+                      <p className="text-[10px] font-bold opacity-30 uppercase tracking-widest mt-1">Due: {formatDate(m.dueDate, 'short')}</p>
                     </div>
                     {isAdmin && (
                       <button

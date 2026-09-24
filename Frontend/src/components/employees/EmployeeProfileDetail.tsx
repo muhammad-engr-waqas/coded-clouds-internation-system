@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { formatDate } from '@/src/lib/formatDate';
 import { 
   X, 
   Mail, 
@@ -125,7 +126,7 @@ export function EmployeeProfileDetail({ employee, onClose, onUpdate, onDelete }:
                       </div>
                       <div>
                         <p className="text-[10px] font-black uppercase opacity-40">Joined On</p>
-                        <p className="text-xs font-bold">{employee.joiningDate}</p>
+                        <p className="text-xs font-bold">{formatDate(employee.joiningDate)}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-4 p-4 bg-[var(--background)]/30 rounded-2xl border border-[var(--border-light)]">

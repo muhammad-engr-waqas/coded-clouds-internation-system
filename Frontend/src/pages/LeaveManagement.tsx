@@ -18,6 +18,7 @@ import {
 import { cn } from '@/src/lib/utils';
 import { LeaveRequest, LeaveStatus, User } from '@/src/types';
 import { exportToCSV } from '@/src/lib/exportUtils';
+import { formatDate } from '@/src/lib/formatDate';
 import { useAppStore } from '../store';
 import { ApplyLeaveModal } from '../components/leave/ApplyLeaveModal';
 import { api } from '@/src/lib/api';
@@ -247,7 +248,7 @@ export function LeaveManagement() {
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] font-black text-accent">{req.leaveType}</span>
                   <p className="text-[10px] font-black">
-                    {new Date(req.fromDate).toLocaleDateString([], { month: 'short', day: 'numeric' })} - {new Date(req.toDate).toLocaleDateString([], { month: 'short', day: 'numeric' })}
+                    {formatDate(req.fromDate, 'monthDay')} - {formatDate(req.toDate, 'monthDay')}
                   </p>
                 </div>
                 <p className="text-[11px] font-medium opacity-60 line-clamp-2">{req.reason}</p>
@@ -272,7 +273,7 @@ export function LeaveManagement() {
                     </div>
                   ) : (
                     <span className="text-[9px] font-bold opacity-20 uppercase tracking-widest">
-                      Applied {new Date(req.appliedOn).toLocaleDateString()}
+                      Applied {formatDate(req.appliedOn, 'short')}
                     </span>
                   )}
                 </div>
@@ -365,7 +366,7 @@ export function LeaveManagement() {
                       </div>
                     ) : (
                       <span className="text-[10px] font-bold opacity-20 uppercase tracking-widest">
-                        {new Date(req.appliedOn).toLocaleDateString([], { month: 'short', day: 'numeric' })}
+                        {formatDate(req.appliedOn, 'monthDay')}
                       </span>
                     )}
                   </td>

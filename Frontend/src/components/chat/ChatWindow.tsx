@@ -15,6 +15,7 @@ import { cn } from '@/src/lib/utils';
 import { Chat, ChatMessage, User } from '@/src/types';
 import { api } from '@/src/lib/api';
 import { getSocket } from '@/src/lib/socket';
+import { formatDate } from '@/src/lib/formatDate';
 
 interface ChatWindowProps {
   chat: Chat;
@@ -216,7 +217,7 @@ export function ChatWindow({ chat, currentUser, onBack, onOpenSettings }: ChatWi
                   {msg.text}
                 </div>
                 <p className="text-[9px] font-bold opacity-30 px-1">
-                  {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  {formatDate(msg.timestamp, 'time')}
                 </p>
               </div>
             </div>

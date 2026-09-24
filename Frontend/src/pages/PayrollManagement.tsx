@@ -20,6 +20,7 @@ import { PayrollStatus } from '@/src/types';
 import { api } from '@/src/lib/api';
 import { getSocket } from '@/src/lib/socket';
 import { jsPDF } from 'jspdf';
+import { formatDate } from '@/src/lib/formatDate';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface SalaryPayment {
@@ -620,7 +621,7 @@ function EmployeePayrollDetail({ row, onClose, onUpdate }: {
                       <tr key={p.id ?? p._id ?? i} className="hover:bg-slate-50/50 transition-colors">
                         <td className="px-5 py-3 text-xs font-black text-blue-500">#{payments.length - i}</td>
                         <td className="px-5 py-3 text-xs font-bold">
-                          {p.paidAt ? new Date(p.paidAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}
+                          {formatDate(p.paidAt, 'short')}
                         </td>
                         <td className="px-5 py-3">
                           <span className="text-xs font-black text-green-600">PKR {Number(p.amount).toLocaleString()}</span>

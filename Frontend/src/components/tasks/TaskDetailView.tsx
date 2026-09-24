@@ -18,6 +18,7 @@ import { cn } from '@/src/lib/utils';
 import { Task, TaskReport, TaskStatus, User } from '@/src/types';
 import { api } from '@/src/lib/api';
 import { getSocket } from '@/src/lib/socket';
+import { formatDate } from '@/src/lib/formatDate';
 
 interface TaskDetailViewProps {
   task: Task;
@@ -169,7 +170,7 @@ export function TaskDetailView({ task, user, onClose, onUpdateStatus, onDelete }
                   <h3 className="text-[10px] font-black uppercase tracking-widest opacity-30">Deadline</h3>
                   <div className="flex items-center gap-2 justify-end">
                     <Calendar className="w-4 h-4 text-accent" />
-                    <p className="text-sm font-black">{new Date(task.deadline).toLocaleDateString([], { month: 'long', day: 'numeric', year: 'numeric' })}</p>
+                    <p className="text-sm font-black">{formatDate(task.deadline, 'long')}</p>
                   </div>
                 </div>
               </div>
@@ -234,7 +235,7 @@ export function TaskDetailView({ task, user, onClose, onUpdateStatus, onDelete }
                         </div>
                         <p className="text-[9px] font-black opacity-30 uppercase tracking-widest">{report.userName ?? 'Unknown'}</p>
                         <span className="text-[8px] font-bold opacity-20 ml-auto">
-                          {new Date(report.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        {formatDate(report.timestamp, 'time')}
                         </span>
                       </div>
                       <div className={cn(

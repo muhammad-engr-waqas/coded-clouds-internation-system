@@ -12,6 +12,7 @@ import { cn } from '@/src/lib/utils';
 import { AttendanceCheckInOutWidget } from '../components/attendance/AttendanceCheckInOutWidget';
 import { useAppStore } from '@/src/store';
 import { api } from '@/src/lib/api';
+import { formatDate } from '@/src/lib/formatDate';
 
 export function EmployeeDashboard() {
   const { user } = useAppStore();
@@ -107,7 +108,7 @@ export function EmployeeDashboard() {
                   <p className="text-[var(--text)]/40 text-[10px] mt-1 font-bold uppercase tracking-tight">{task.project?.name || 'No Project'}</p>
                   <div className="mt-3 flex items-center gap-1.5 text-[9px] font-black text-[var(--text)]/30 uppercase">
                     <Clock className="w-3 h-3" />
-                    Due {new Date(task.deadline).toLocaleDateString([], { month: 'short', day: 'numeric' })}
+                    Due {formatDate(task.deadline, 'monthDay')}
                   </div>
                 </div>
               ))}
@@ -136,7 +137,7 @@ export function EmployeeDashboard() {
                     <div className="min-w-0">
                       <h4 className="text-[11px] font-bold truncate group-hover:text-accent transition-colors leading-tight">{note.text}</h4>
                       <p className="text-[9px] text-[var(--text)]/40 font-black uppercase tracking-tighter mt-0.5">
-                        {note.senderId?.fullName} • {new Date(note.createdAt).toLocaleDateString([], { month: 'short', day: 'numeric' })}
+                        {note.senderId?.fullName} • {formatDate(note.createdAt, 'monthDay')}
                       </p>
                     </div>
                   </div>

@@ -18,6 +18,7 @@ import {
 import { cn } from '@/src/lib/utils';
 import { User } from '@/src/types';
 import { exportToCSV } from '@/src/lib/exportUtils';
+import { formatDate } from '@/src/lib/formatDate';
 import { AddEmployeeForm } from '../components/employees/AddEmployeeForm';
 import { EmployeeProfileDetail } from '../components/employees/EmployeeProfileDetail';
 import { api } from '@/src/lib/api';
@@ -293,7 +294,7 @@ export function EmployeeDirectory() {
                       <Mail className="w-3 h-3 opacity-30" />{emp.email}
                     </div>
                   </td>
-                  <td className="px-5 py-2.5 text-[10px] text-[var(--text)]/60 font-bold">{emp.joiningDate}</td>
+                  <td className="px-5 py-2.5 text-[10px] text-[var(--text)]/60 font-bold">{formatDate(emp.joiningDate)}</td>
                   <td className="px-5 py-2.5">
                     <span className={cn(
                       "text-[9px] font-black px-1.5 py-0.5 rounded uppercase tracking-tighter",

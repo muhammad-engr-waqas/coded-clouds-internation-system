@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/src/lib/utils';
 import { Task } from '@/src/types';
+import { formatDate } from '@/src/lib/formatDate';
 
 interface TaskCardProps {
   task: Task;
@@ -67,7 +68,7 @@ export function TaskCard({ task, onClick }: TaskCardProps) {
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-1 text-[var(--text)]/40">
             <Calendar className="w-3.5 h-3.5" />
-            <span className="text-[10px] font-bold">{new Date(task.deadline).toLocaleDateString([], { month: 'short', day: 'numeric' })}</span>
+            <span className="text-[10px] font-bold">{formatDate(task.deadline, 'monthDay')}</span>
           </div>
           <div className="flex items-center gap-1 text-[var(--text)]/40">
             <MessageSquare className="w-3.5 h-3.5" />

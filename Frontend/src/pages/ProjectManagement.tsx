@@ -19,6 +19,7 @@ import { AddProjectModal } from '../components/projects/AddProjectModal';
 import { ProjectDetail } from './ProjectDetail';
 import { useAppStore } from '../store';
 import { api } from '@/src/lib/api';
+import { formatDate } from '@/src/lib/formatDate';
 
 export function ProjectManagement() {
   const { user } = useAppStore();
@@ -196,11 +197,11 @@ export function ProjectManagement() {
                 <div className="flex items-center justify-between mt-2">
                   <div className="flex items-center gap-2">
                     <p className="text-[10px] font-bold opacity-50">
-                      {new Date(project.startDate).toLocaleDateString([], { month: 'short', day: 'numeric' })}
+                      {formatDate(project.startDate, 'monthDay')}
                     </p>
                     <ChevronRight className="w-3 h-3 opacity-20" />
                     <p className="text-[10px] font-black">
-                      {project.endDate ? new Date(project.endDate).toLocaleDateString([], { month: 'short', day: 'numeric' }) : 'Ongoing'}
+                      {project.endDate ? formatDate(project.endDate, 'monthDay') : 'Ongoing'}
                     </p>
                   </div>
                   <div className="flex gap-2">
@@ -281,11 +282,11 @@ export function ProjectManagement() {
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-2">
                       <p className="text-[10px] font-bold opacity-50">
-                        {new Date(project.startDate).toLocaleDateString([], { month: 'short', day: 'numeric' })}
+                        {formatDate(project.startDate, 'monthDay')}
                       </p>
                       <ChevronRight className="w-3 h-3 opacity-20" />
                       <p className="text-[10px] font-black">
-                        {project.endDate ? new Date(project.endDate).toLocaleDateString([], { month: 'short', day: 'numeric' }) : 'Ongoing'}
+                        {project.endDate ? formatDate(project.endDate, 'monthDay') : 'Ongoing'}
                       </p>
                     </div>
                   </td>
