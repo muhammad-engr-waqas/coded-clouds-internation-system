@@ -169,7 +169,8 @@ export function TaskManagement() {
         <AssignTaskModal 
           onClose={() => setIsAssignModalOpen(false)}
           onSuccess={(newTask) => {
-            setTasks([newTask, ...tasks]);
+            // normalizeTask lagana zaruri hai — backend se assignedTo populated object aata hai
+            setTasks([normalizeTask(newTask), ...tasks]);
             setIsAssignModalOpen(false);
           }}
         />

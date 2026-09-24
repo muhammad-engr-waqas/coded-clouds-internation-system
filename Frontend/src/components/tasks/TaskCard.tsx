@@ -55,11 +55,11 @@ export function TaskCard({ task, onClick }: TaskCardProps) {
       
       <div className="flex items-center gap-3 mb-4">
         <div className="w-6 h-6 rounded-lg bg-accent/10 flex items-center justify-center text-accent text-[9px] font-black">
-          {task.assignedToName.charAt(0)}
+          {(task.assignedToName ?? '?').charAt(0)}
         </div>
         <div>
-          <p className="text-[10px] font-black leading-tight">{task.assignedToName}</p>
-          <p className="text-[8px] font-bold opacity-30 uppercase tracking-widest">{task.assignedToRole}</p>
+          <p className="text-[10px] font-black leading-tight">{task.assignedToName ?? 'Unknown'}</p>
+          <p className="text-[8px] font-bold opacity-30 uppercase tracking-widest">{task.assignedToRole ?? ''}</p>
         </div>
       </div>
 
