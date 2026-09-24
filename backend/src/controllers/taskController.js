@@ -86,7 +86,14 @@ export const createTask = async (req, res) => {
   });
 
   const io = req.app.get('io');
-  io.to(`user:${assignedTo}`).emit('task:assigned', task);
+
+  // Populate before emitting & responding so frontend gets fullName/role directly
+  const populated = await task.populate([
+    { path: 'assignedTo', select: 'fullName role avatarUrl' },
+    { path: 'project',    select: 'name' },
+  ]);
+
+  io.to(`user:${assignedTo}`).emit('task:assigned', populated);
   await notifyUser(io, assignedTo, {
     type: 'TASK_ASSIGNED',
     title: 'New task assigned to you',
@@ -94,7 +101,7 @@ export const createTask = async (req, res) => {
     link: `/tasks/${task._id}`,
   });
 
-  res.status(201).json(task);
+  res.status(201).json({ ...populated.toObject(), reportCount: 0 });
 };
 
 // @route GET /api/tasks/:id
