@@ -22,6 +22,7 @@ import {
 import { cn } from '@/src/lib/utils';
 import { useAppStore } from '@/src/store';
 import { exportToCSV } from '@/src/lib/exportUtils';
+import { formatDate } from '@/src/lib/formatDate';
 import { AttendanceCheckInOutWidget } from '../components/attendance/AttendanceCheckInOutWidget';
 import { AttendanceHeatmapCalendar } from '../components/attendance/AttendanceHeatmapCalendar';
 import { AttendanceStatus } from '../types';
@@ -275,11 +276,11 @@ export function AttendanceManagement() {
                   {history.map((log) => (
                     <div key={log.id} className="p-4 active:bg-slate-50">
                       <div className="flex justify-between items-center mb-2">
-                        <span className="text-xs font-black">{log.date}</span>
+                        <span className="text-xs font-black">{formatDate(log.date, 'short')}</span>
                         <StatusBadge status={log.status} />
                       </div>
                       <div className="flex justify-between text-[10px] font-bold opacity-60">
-                        <span>{log.checkIn || '--'} → {log.checkOut || '--'}</span>
+                        <span>{log.checkIn ? formatDate(log.checkIn, 'time') : '--'} → {log.checkOut ? formatDate(log.checkOut, 'time') : '--'}</span>
                         <span className="text-accent">{log.totalHours ? `${log.totalHours}h` : '--'}</span>
                       </div>
                     </div>
@@ -301,9 +302,9 @@ export function AttendanceManagement() {
                     <tbody className="divide-y divide-[var(--border-light)]">
                       {history.map((log) => (
                         <tr key={log.id} className="hover:bg-[var(--background)]/30 transition-colors">
-                          <td className="px-5 py-4 font-black">{log.date}</td>
-                          <td className="px-5 py-4 opacity-60">{log.checkIn || '--'}</td>
-                          <td className="px-5 py-4 opacity-60">{log.checkOut || '--'}</td>
+                          <td className="px-5 py-4 font-black">{formatDate(log.date, 'short')}</td>
+                          <td className="px-5 py-4 opacity-60">{log.checkIn ? formatDate(log.checkIn, 'time') : '--'}</td>
+                          <td className="px-5 py-4 opacity-60">{log.checkOut ? formatDate(log.checkOut, 'time') : '--'}</td>
                           <td className="px-5 py-4 text-accent">{log.totalHours ? `${log.totalHours}h` : '--'}</td>
                           <td className="px-5 py-4">
                             <StatusBadge status={log.status} />
