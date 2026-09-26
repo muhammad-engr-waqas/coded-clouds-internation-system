@@ -40,6 +40,7 @@ export const getAllTasks = async (req, res) => {
 // Access: any employee — STRICTLY scoped to their own assigned tasks only (visibility Rule 1)
 export const getMyTasks = async (req, res) => {
   const tasks = await Task.find({ assignedTo: req.user._id })
+    .populate('assignedTo', 'fullName role avatarUrl')   // ← populate added
     .populate('project', 'name')
     .sort({ createdAt: -1 });
 
