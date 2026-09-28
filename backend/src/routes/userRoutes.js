@@ -31,7 +31,7 @@ router.post('/',   isAdminOrHR, createEmployee,
 // Per-employee profile — cache 5 min
 router.get('/:id',       isAdminOrHR, cache((req) => `employees:${req.params.id}`, 300), getEmployeeById);
 router.patch('/:id',     isAdminOrHR, updateEmployee,
-  invalidate([(req) => `employees:${req.params.id}`, 'employees:list:*', 'report:workforce'])
+  invalidate([(req) => `employees:${req.params.id}`, 'employees:list:*', 'report:workforce', 'payroll:month:*'])
 );
 router.delete('/:id',    isAdminOrHR, deleteEmployee,
   invalidate([(req) => `employees:${req.params.id}`, 'employees:list:*', 'report:workforce'])

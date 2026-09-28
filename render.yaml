@@ -25,7 +25,7 @@ services:
           type: redis
           property: connectionString
       - key: CLIENT_URL
-        value: https://coded-clouds-internation-system.onrender.com
+        value: https://coded-clouds.com
       - key: UPLOAD_DIR
         value: uploads
       - key: MAX_FILE_SIZE_MB
@@ -34,8 +34,6 @@ services:
         value: "09:15"
 
   # ── 2. Frontend React SPA (Static Site) ───────────────────────────────────
-  # Static Site type automatically serves _redirects file from dist/
-  # so /* → /index.html works on every page refresh.
   - type: web
     name: coded-clouds-internation-system
     runtime: static

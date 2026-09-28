@@ -1,8 +1,10 @@
 import User from '../models/User.js';
+import Payroll from '../models/Payroll.js';
 import Channel from '../models/Channel.js';
 import { logAudit } from '../utils/audit.js';
 import { notifyUser } from '../utils/notify.js';
 import { buildFileUrl } from '../middleware/upload.js';
+import { currentMonthStr } from '../utils/dateHelpers.js';
 
 // @route GET /api/employees
 // Access: Admin, HR  (directory listing, search/filter/paginate)
@@ -130,6 +132,29 @@ export const updateEmployee = async (req, res) => {
 
   const salaryChanged = req.body.basicSalary !== undefined;
   await employee.save();
+
+  // If basicSalary changed, sync it into every Pending payroll row for this employee
+  // so the current month's payroll reflects the new salary immediately.
+  if (salaryChanged) {
+    const pendingRows = await Payroll.find({
+      userId: employee._id,
+      status: 'Pending',
+    });
+    for (const row of pendingRows) {
+      row.basicSalary = employee.basicSalary;
+      await row.save(); // pre-save hook recalculates netSalary
+    }
+
+    // Emit socket update for each synced row so the Payroll page refreshes live
+    const io = req.app.get('io');
+    if (io && pendingRows.length > 0) {
+      io.emit('payroll:salary_synced', {
+        userId: employee._id.toString(),
+        newBasicSalary: employee.basicSalary,
+        updatedMonths: pendingRows.map(r => r.month),
+      });
+    }
+  }
 
   await logAudit({
     actor: req.user._id,

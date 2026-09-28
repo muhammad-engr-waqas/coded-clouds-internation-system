@@ -141,6 +141,7 @@ export const api = {
     getPayments: (id: string) => request(`/payroll/${id}/payments`),
     getEmployeeDetail: (userId: string, month?: string) =>
       request(`/payroll/employee/${userId}${month ? `?month=${month}` : ''}`),
+    deleteOrphans: () => request(`/payroll/orphans`, { method: 'DELETE' }),
   },
 
   // ---------------- Projects (Admin only) ----------------

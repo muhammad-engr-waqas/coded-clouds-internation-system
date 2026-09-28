@@ -25,27 +25,51 @@ async function enrichRow(row) {
 }
 
 // @route POST /api/payroll/generate?month=YYYY-MM
-// Access: Admin, HR — creates payroll rows for all active employees using their current basicSalary
+// Access: Admin, HR — creates payroll rows for all active employees using their current basicSalary.
+// If a Pending row already exists for an employee, basicSalary is re-synced from User (so salary
+// changes made after the first generate are reflected when you click Generate again).
 export const generatePayroll = async (req, res) => {
   const month = req.query.month || req.body.month || currentMonthStr();
   const employees = await User.find({ status: 'Active' });
 
   const created = [];
+  const synced  = [];
+
   for (const emp of employees) {
     const exists = await Payroll.findOne({ userId: emp._id, month });
-    if (exists) continue;
-    const row = await Payroll.create({
-      userId: emp._id,
-      month,
-      basicSalary: emp.basicSalary || 0,
-    });
-    created.push(row);
+
+    if (!exists) {
+      // New row — create with current salary
+      const row = await Payroll.create({
+        userId: emp._id,
+        month,
+        basicSalary: emp.basicSalary || 0,
+      });
+      created.push(row);
+    } else if (exists.status === 'Pending' && exists.basicSalary !== (emp.basicSalary || 0)) {
+      // Existing Pending row with stale salary — re-sync basicSalary so netSalary updates too
+      exists.basicSalary = emp.basicSalary || 0;
+      await exists.save(); // pre-save hook recalculates netSalary
+      synced.push(exists);
+    }
+    // Rows in Processing / Paid status are left untouched — salary already partially/fully paid
   }
 
-  // Real-time: let every connected Admin/HR table refresh without a manual reload.
-  req.app.get('io')?.emit('payroll:generated', { month, count: created.length });
+  const io = req.app.get('io');
+  // Emit generated event (triggers full table refresh on the frontend)
+  io?.emit('payroll:generated', { month, count: created.length + synced.length });
+  // Also broadcast individual updates for synced rows so real-time stays accurate
+  for (const row of synced) {
+    const enriched = await enrichRow(row);
+    io?.emit('payroll:updated', enriched);
+  }
 
-  res.json({ message: `Payroll generated for ${created.length} employee(s)`, month, created });
+  res.json({
+    message: `Payroll processed: ${created.length} created, ${synced.length} salary-synced`,
+    month,
+    created,
+    synced,
+  });
 };
 
 // @route GET /api/payroll?month=&department=&status=
@@ -57,11 +81,13 @@ export const getPayroll = async (req, res) => {
   const query = { month };
   if (status) query.status = status;
 
-  const rows = await Payroll.find(query).populate('userId', 'fullName role department avatarUrl');
+  const rows = await Payroll.find(query).populate('userId', 'fullName role department avatarUrl designation email');
 
-  // Attach payment history + totalPaid to each row
+  // Fetch ALL payments for these rows in a single query (efficient batch load)
   const rowIds = rows.map(r => r._id);
   const allPayments = await SalaryPayment.find({ payrollId: { $in: rowIds } }).sort({ createdAt: 1 });
+
+  // Group payments by payrollId
   const paymentsByRow = {};
   for (const p of allPayments) {
     const key = p.payrollId.toString();
@@ -69,28 +95,44 @@ export const getPayroll = async (req, res) => {
     paymentsByRow[key].push(p);
   }
 
-  const enrichedRows = rows.map(r => {
-    const pmts = paymentsByRow[r._id.toString()] || [];
-    return { ...r.toObject(), payments: pmts, totalPaid: pmts.reduce((s, p) => s + p.amount, 0) };
+  // Build fully-enriched rows (same fields as enrichRow helper — consistent across all endpoints)
+  // Filter out orphan rows where the linked User has been deleted (userId becomes null after populate)
+  const enrichedRows = rows
+    .filter(r => r.userId != null)
+    .map(r => {
+    const pmts          = paymentsByRow[r._id.toString()] || [];
+    const totalPaid       = pmts.reduce((s, p) => s + (p.amount || 0), 0);
+    const totalDeductions = pmts.reduce((s, p) => s + (p.deductionAmount || 0), 0);
+    const remainingBalance = Math.max(0, (r.netSalary || 0) - totalPaid);
+    const computedStatus  = totalPaid >= (r.netSalary || 0) - 0.01
+      ? 'Paid' : totalPaid > 0 ? 'Processing' : 'Pending';
+    return {
+      ...r.toObject(),
+      payments:        pmts,
+      totalPaid,
+      totalDeductions,
+      remainingBalance,
+      computedStatus,
+    };
   });
 
-  const totalNet = enrichedRows.reduce((s, r) => s + r.netSalary, 0);
-  const totalPaid = enrichedRows.reduce((s, r) => s + (r.totalPaid || 0), 0);
-  const totalPending = enrichedRows.reduce((s, r) => s + Math.max(0, r.netSalary - (r.totalPaid || 0)), 0);
-  const totalBonus = enrichedRows.reduce((s, r) => s + r.bonus, 0);
-  const totalDeductions = enrichedRows.reduce((s, r) => s + r.deductions, 0);
+  const totalNet        = enrichedRows.reduce((s, r) => s + (r.netSalary || 0), 0);
+  const totalPaidSum    = enrichedRows.reduce((s, r) => s + (r.totalPaid || 0), 0);
+  const totalPending    = enrichedRows.reduce((s, r) => s + (r.remainingBalance || 0), 0);
+  const totalBonus      = enrichedRows.reduce((s, r) => s + (r.bonus || 0), 0);
+  const totalDeductionsSum = enrichedRows.reduce((s, r) => s + (r.deductions || 0), 0);
 
   res.json({
     month,
     rows: enrichedRows,
     summary: {
-      totalPayroll: totalNet,
-      totalPaid,
+      totalPayroll:  totalNet,
+      totalPaid:     totalPaidSum,
       totalPending,
-      paidCount: enrichedRows.filter(r => r.status === 'Paid').length,
-      pendingCount: enrichedRows.filter(r => r.status !== 'Paid').length,
+      paidCount:     enrichedRows.filter(r => r.computedStatus === 'Paid').length,
+      pendingCount:  enrichedRows.filter(r => r.computedStatus !== 'Paid').length,
       totalBonus,
-      totalDeductions,
+      totalDeductions: totalDeductionsSum,
     },
   });
 };
@@ -178,4 +220,27 @@ export const getPayslip = async (req, res) => {
   const history = await Payroll.find({ userId: row.userId._id }).sort({ month: -1 });
 
   res.json({ payslip: row, history });
+};
+
+// @route DELETE /api/payroll/orphans
+// Access: Admin only — permanently deletes Payroll rows whose linked User no longer exists
+export const deleteOrphanPayroll = async (req, res) => {
+  // Fetch all payroll rows with userId populated; null after populate = user deleted
+  const allRows = await Payroll.find({}).populate('userId', '_id');
+  const orphanIds = allRows.filter(r => r.userId == null).map(r => r._id);
+
+  if (orphanIds.length === 0) {
+    return res.json({ message: 'No orphan payroll records found', deleted: 0 });
+  }
+
+  await Payroll.deleteMany({ _id: { $in: orphanIds } });
+
+  await logAudit({
+    actor: req.user._id,
+    action: 'DELETED_ORPHAN_PAYROLL',
+    module: 'Payroll',
+    details: { count: orphanIds.length, ids: orphanIds },
+  });
+
+  res.json({ message: `Deleted ${orphanIds.length} orphan payroll record(s)`, deleted: orphanIds.length });
 };

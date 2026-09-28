@@ -5,6 +5,7 @@ import {
   updatePayrollRow,
   updatePayrollStatus,
   getPayslip,
+  deleteOrphanPayroll,
 } from '../controllers/payrollController.js';
 import {
   addSalaryPayment,
@@ -27,6 +28,11 @@ router.use(protect);
 // Generate payroll for a month
 router.post('/generate', isAdminOrHR, strictLimiter, generatePayroll,
   invalidate(['payroll:month:*', 'report:payroll:*'])
+);
+
+// Clean up orphan payroll rows (linked User was deleted)
+router.delete('/orphans', isAdminOrHR, deleteOrphanPayroll,
+  invalidate(['payroll:month:*'])
 );
 
 // List all payroll rows for a month (with payments attached)

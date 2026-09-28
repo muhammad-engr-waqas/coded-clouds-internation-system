@@ -13,7 +13,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   Search, Download, CheckCircle2, Clock, AlertCircle, FileText,
   Loader2, TrendingUp, DollarSign, Plus, X, History, ChevronDown,
-  ChevronUp, ArrowLeft, User as UserIcon, CreditCard, Minus,
+  ChevronUp, ArrowLeft, User as UserIcon, CreditCard, Minus, Trash2,
 } from 'lucide-react';
 import { cn } from '@/src/lib/utils';
 import { PayrollStatus } from '@/src/types';
@@ -702,6 +702,7 @@ export function PayrollManagement() {
   const [search,     setSearch]     = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [generating, setGenerating] = useState(false);
+  const [cleaningOrphans, setCleaningOrphans] = useState(false);
   const [detailRow,  setDetailRow]  = useState<PayrollRow | null>(null);
   // Per-row pending edits — tracks what user has typed but not yet saved
   // Key = rowId, value = { allowances, bonus, deductions, netSalary, amountPaid }
@@ -751,9 +752,18 @@ export function PayrollManagement() {
       setDetailRow(prev => prev?.id === enriched.id ? enriched : prev);
     };
     const onGenerated = (p: { month: string }) => { if (p.month === month) fetchPayroll(); };
-    socket?.on('payroll:updated',   onUpdated);
-    socket?.on('payroll:generated', onGenerated);
-    return () => { socket?.off('payroll:updated', onUpdated); socket?.off('payroll:generated', onGenerated); };
+    // Fires when an employee's basicSalary is updated — refreshes Pending rows automatically
+    const onSalarySynced = (p: { userId: string; newBasicSalary: number; updatedMonths: string[] }) => {
+      if (p.updatedMonths.includes(month)) fetchPayroll();
+    };
+    socket?.on('payroll:updated',       onUpdated);
+    socket?.on('payroll:generated',     onGenerated);
+    socket?.on('payroll:salary_synced', onSalarySynced);
+    return () => {
+      socket?.off('payroll:updated',       onUpdated);
+      socket?.off('payroll:generated',     onGenerated);
+      socket?.off('payroll:salary_synced', onSalarySynced);
+    };
   }, [month, fetchPayroll]);
 
   // Called on every keystroke in Allowances/Bonus/Deductions inputs
@@ -869,6 +879,16 @@ export function PayrollManagement() {
     finally { setGenerating(false); }
   };
 
+  const handleCleanOrphans = async () => {
+    setCleaningOrphans(true); setError('');
+    try {
+      const result = await api.payroll.deleteOrphans();
+      if ((result?.deleted ?? 0) > 0) await fetchPayroll();
+    }
+    catch (e: any) { setError(e?.message || 'Failed to clean orphan records'); }
+    finally { setCleaningOrphans(false); }
+  };
+
   const handleExportCsv = () => {
     const header = ['Employee', 'Department', 'Basic', 'Allowances', 'Bonus', 'Deductions', 'Net Salary', 'Total Paid', 'Total Deductions', 'Remaining', 'Status'];
     const lines  = filteredRows.map(p => [
@@ -929,6 +949,12 @@ export function PayrollManagement() {
             className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-bold shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all disabled:opacity-60">
             {generating ? <Loader2 className="w-4 h-4 animate-spin" /> : <TrendingUp className="w-4 h-4" />}
             Generate Payroll
+          </button>
+          <button onClick={handleCleanOrphans} disabled={cleaningOrphans}
+            title="Remove Unknown / deleted-employee payroll entries"
+            className="flex items-center gap-2 px-4 py-2 bg-red-50 border border-red-200 text-red-600 rounded-xl text-sm font-bold shadow-sm hover:bg-red-100 transition-all disabled:opacity-60">
+            {cleaningOrphans ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+            Clean Unknown
           </button>
         </div>
       </div>
