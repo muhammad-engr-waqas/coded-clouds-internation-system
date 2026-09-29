@@ -446,7 +446,7 @@ export const getStats = async (req, res) => {
           { $sort: { count: -1 } },
           { $limit: 20 },
           { $lookup: { from: 'users', localField: '_id', foreignField: '_id', as: 'user' } },
-          { $unwind: { path: '$user', preserveNullAndEmpty: false } },
+          { $unwind: { path: '$user', preserveNullAndEmptyArrays: false } },
           { $project: { count: 1, fullName: '$user.fullName', avatarUrl: '$user.avatarUrl', role: '$user.role' } },
         ])
       : [],
