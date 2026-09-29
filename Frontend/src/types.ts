@@ -192,3 +192,55 @@ export interface Message {
   createdAt: string;
   readBy: string[];
 }
+
+// ─── CRM Sales Lead Module ────────────────────────────────────────────────────
+
+export type LeadStatus =
+  | 'New' | 'Contacted' | 'Follow-up' | 'Interested' | 'Meeting Scheduled'
+  | 'Proposal Sent' | 'Negotiation' | 'Won' | 'Lost' | 'Not Interested' | '';
+
+export type LeadSource =
+  | 'Website' | 'Facebook' | 'Instagram' | 'LinkedIn' | 'WhatsApp'
+  | 'Referral' | 'Cold Call' | 'Walk-in' | 'Other' | '';
+
+export interface SalesLead {
+  id: string;
+  _id?: string;
+  leadId: string;           // LD-0001
+  date: string;             // ISO string
+  companyName: string;
+  contactPerson: string;
+  phone: string;
+  email: string;
+  city: string;
+  industry: string;
+  source: LeadSource;
+  requirement: string;
+  leadStatus: LeadStatus;
+  followUpDate?: string | null;
+  assignedTo: { id: string; fullName: string; role: string; avatarUrl?: string } | string;
+  remarks: string;
+  createdBy?: { id: string; fullName: string } | string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface LeadStats {
+  total: { all: number; today: number; week: number; month: number };
+  byStatus: Record<string, number>;
+  updatedToday: number;
+  followUpPending: number;
+  leaderboard: { _id: string; count: number; fullName: string; avatarUrl?: string; role: string }[];
+}
+
+export interface LeadActivityEntry {
+  id: string;
+  leadId: string;
+  leadRefId: string;
+  actor: string;
+  actorName: string;
+  action: string;
+  changes: { field: string; from: string; to: string }[];
+  note?: string;
+  createdAt: string;
+}

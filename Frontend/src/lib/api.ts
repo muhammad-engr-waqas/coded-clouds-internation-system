@@ -213,4 +213,19 @@ export const api = {
     markRead: (id: string) => request(`/notifications/${id}/read`, { method: 'PATCH' }),
     markAllRead: () => request('/notifications/read-all', { method: 'PATCH' }),
   },
+
+  // ---------------- Sales Leads (CRM) ----------------
+  salesLeads: {
+    list:        (params: Record<string, string> = {}) => request(`/sales-leads?${new URLSearchParams(params)}`),
+    create:      (payload: any) => request('/sales-leads', { method: 'POST', body: payload }),
+    update:      (id: string, payload: any) => request(`/sales-leads/${id}`, { method: 'PATCH', body: payload }),
+    remove:      (id: string) => request(`/sales-leads/${id}`, { method: 'DELETE' }),
+    duplicate:   (id: string) => request(`/sales-leads/${id}/duplicate`, { method: 'POST' }),
+    bulk:        (rows: any[]) => request('/sales-leads/bulk', { method: 'POST', body: { rows } }),
+    import:      (rows: any[]) => request('/sales-leads/import', { method: 'POST', body: { rows } }),
+    stats:       (params: Record<string, string> = {}) => request(`/sales-leads/stats?${new URLSearchParams(params)}`),
+    activity:    (params: Record<string, string> = {}) => request(`/sales-leads/activity?${new URLSearchParams(params)}`),
+    salespeople: () => request('/sales-leads/salespeople'),
+    industries:  () => request('/sales-leads/industries'),
+  },
 };

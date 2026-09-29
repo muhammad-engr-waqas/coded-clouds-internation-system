@@ -14,6 +14,7 @@ const notificationSchema = new mongoose.Schema(
         'CHAT_MESSAGE',
         'PAYROLL_PAID',
         'EMPLOYEE_ADDED',
+        'LEAD_ASSIGNED',
         'SYSTEM',
       ],
       required: true,

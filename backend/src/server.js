@@ -29,6 +29,7 @@ import settingsRoutes    from './routes/settingsRoutes.js';
 import reportRoutes      from './routes/reportRoutes.js';
 import auditRoutes       from './routes/auditRoutes.js';
 import notificationRoutes from './routes/notificationRoutes.js';
+import salesLeadRoutes    from './routes/salesLeadRoutes.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -75,6 +76,7 @@ app.use('/api/settings',      settingsRoutes);
 app.use('/api/reports',       reportRoutes);
 app.use('/api/audit',         auditRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/sales-leads',  salesLeadRoutes);
 
 // ── Error handling (must be last) ─────────────────────────────────────────────
 app.use(notFound);

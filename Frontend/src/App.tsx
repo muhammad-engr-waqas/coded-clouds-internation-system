@@ -21,6 +21,8 @@ import { LeaveManagement } from './pages/LeaveManagement';
 import AdminSettings from './pages/AdminSettings';
 import ReportsDashboard from './pages/ReportsDashboard';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import { SalesLeadPage }      from './pages/SalesLeadPage';
+import { AdminSalesLeadPage } from './pages/AdminSalesLeadPage';
 
 // ── Hash-based routing helper ──────────────────────────────────────────────
 // We use window.location.hash (#/admin/employees) instead of pathname so that
@@ -89,6 +91,7 @@ export default function App() {
       if (p === '/admin/leave')     return <LeaveManagement />;
       if (p === '/admin/settings')  return <AdminSettings />;
       if (p === '/admin/reports')   return <ReportsDashboard />;
+      if (p === '/admin/sales-leads') return <AdminSalesLeadPage />;
       return <AdminDashboard />;
     }
 
@@ -99,6 +102,12 @@ export default function App() {
       if (p === '/hr/chat')       return <ChatModule />;
       if (p === '/hr/leave')      return <LeaveManagement />;
       return <EmployeeDashboard />;
+    }
+
+    // ── Sales role ─────────────────────────────────────────────────────
+    if (user.role === 'Sales') {
+      if (p === '/sales/chat')  return <ChatModule />;
+      return <SalesLeadPage />;
     }
 
     if (p === '/employee/tasks')      return <TaskManagement />;

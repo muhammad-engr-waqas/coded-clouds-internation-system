@@ -14,7 +14,8 @@ import {
   FileText,
   CreditCard,
   LogOut,
-  X
+  X,
+  TrendingUp,
 } from 'lucide-react';
 import { useAppStore } from '@/src/store';
 import { cn } from '@/src/lib/utils';
@@ -23,32 +24,37 @@ import { navigate } from '@/src/App';
 
 const navItems = {
   Admin: [
-    { icon: LayoutDashboard, label: 'Dashboard', path: '/admin' },
-    { icon: Users, label: 'Employees', path: '/admin/employees' },
-    { icon: CreditCard, label: 'Payroll', path: '/admin/payroll' },
-    { icon: CheckSquare, label: 'Tasks', path: '/admin/tasks' },
-    { icon: Calendar, label: 'Attendance', path: '/admin/attendance' },
-    { icon: MessageSquare, label: 'Chat', path: '/admin/chat' },
-    { icon: Briefcase, label: 'Projects', path: '/admin/projects' },
-    { icon: FileText, label: 'Leave', path: '/admin/leave' },
-    { icon: BarChart3, label: 'Reports', path: '/admin/reports' },
-    { icon: ShieldCheck, label: 'Audit', path: '/admin/audit' },
-    { icon: Settings, label: 'Settings', path: '/admin/settings' },
+    { icon: LayoutDashboard, label: 'Dashboard',   path: '/admin' },
+    { icon: Users,           label: 'Employees',   path: '/admin/employees' },
+    { icon: CreditCard,      label: 'Payroll',     path: '/admin/payroll' },
+    { icon: CheckSquare,     label: 'Tasks',       path: '/admin/tasks' },
+    { icon: Calendar,        label: 'Attendance',  path: '/admin/attendance' },
+    { icon: MessageSquare,   label: 'Chat',        path: '/admin/chat' },
+    { icon: Briefcase,       label: 'Projects',    path: '/admin/projects' },
+    { icon: FileText,        label: 'Leave',       path: '/admin/leave' },
+    { icon: TrendingUp,      label: 'Sales CRM',   path: '/admin/sales-leads' },
+    { icon: BarChart3,       label: 'Reports',     path: '/admin/reports' },
+    { icon: ShieldCheck,     label: 'Audit',       path: '/admin/audit' },
+    { icon: Settings,        label: 'Settings',    path: '/admin/settings' },
   ],
   HR: [
-    { icon: LayoutDashboard, label: 'Dashboard', path: '/hr' },
-    { icon: Users, label: 'Employees', path: '/hr/employees' },
-    { icon: FileText, label: 'Leave Requests', path: '/hr/leave' },
-    { icon: CreditCard, label: 'Payroll', path: '/hr/payroll' },
-    { icon: Calendar, label: 'Attendance', path: '/hr/attendance' },
-    { icon: MessageSquare, label: 'Chat', path: '/hr/chat' },
+    { icon: LayoutDashboard, label: 'Dashboard',      path: '/hr' },
+    { icon: Users,           label: 'Employees',      path: '/hr/employees' },
+    { icon: FileText,        label: 'Leave Requests', path: '/hr/leave' },
+    { icon: CreditCard,      label: 'Payroll',        path: '/hr/payroll' },
+    { icon: Calendar,        label: 'Attendance',     path: '/hr/attendance' },
+    { icon: MessageSquare,   label: 'Chat',           path: '/hr/chat' },
+  ],
+  Sales: [
+    { icon: TrendingUp,    label: 'My Leads',    path: '/sales/leads' },
+    { icon: MessageSquare, label: 'Chat',        path: '/sales/chat' },
   ],
   Employee: [
-    { icon: LayoutDashboard, label: 'Dashboard', path: '/employee' },
-    { icon: CheckSquare, label: 'My Tasks', path: '/employee/tasks' },
-    { icon: Calendar, label: 'Attendance', path: '/employee/attendance' },
-    { icon: MessageSquare, label: 'Chat', path: '/employee/chat' },
-    { icon: FileText, label: 'Leave', path: '/employee/leave' },
+    { icon: LayoutDashboard, label: 'Dashboard',   path: '/employee' },
+    { icon: CheckSquare,     label: 'My Tasks',    path: '/employee/tasks' },
+    { icon: Calendar,        label: 'Attendance',  path: '/employee/attendance' },
+    { icon: MessageSquare,   label: 'Chat',        path: '/employee/chat' },
+    { icon: FileText,        label: 'Leave',       path: '/employee/leave' },
   ],
 };
 
@@ -62,9 +68,11 @@ export function Sidebar() {
     setMobileSidebarOpen
   } = useAppStore();
   
-  // Default to Employee if no role is found
-  const role = (user?.role === 'Admin' || user?.role === 'HR') ? user.role : 'Employee';
-  const items = navItems[role as keyof typeof navItems];
+  // Map role to navItems key: Admin, HR, Sales get their own nav; everyone else gets Employee
+  const role = (user?.role === 'Admin' || user?.role === 'HR' || user?.role === 'Sales')
+    ? user.role
+    : 'Employee';
+  const items = navItems[role as keyof typeof navItems] ?? navItems.Employee;
 
   const handleNavClick = (path: string) => {
     navigate(path);  // sets window.location.hash = path → hashchange fires → App re-renders
