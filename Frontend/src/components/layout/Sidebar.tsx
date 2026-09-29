@@ -46,8 +46,12 @@ const navItems = {
     { icon: MessageSquare,   label: 'Chat',           path: '/hr/chat' },
   ],
   Sales: [
-    { icon: TrendingUp,    label: 'My Leads',    path: '/sales/leads' },
-    { icon: MessageSquare, label: 'Chat',        path: '/sales/chat' },
+    { icon: LayoutDashboard, label: 'Dashboard',  path: '/sales' },
+    { icon: TrendingUp,      label: 'My Leads',   path: '/sales/leads' },
+    { icon: CheckSquare,     label: 'My Tasks',   path: '/sales/tasks' },
+    { icon: Calendar,        label: 'Attendance', path: '/sales/attendance' },
+    { icon: MessageSquare,   label: 'Chat',       path: '/sales/chat' },
+    { icon: FileText,        label: 'Leave',      path: '/sales/leave' },
   ],
   Employee: [
     { icon: LayoutDashboard, label: 'Dashboard',   path: '/employee' },

@@ -106,8 +106,12 @@ export default function App() {
 
     // ── Sales role ─────────────────────────────────────────────────────
     if (user.role === 'Sales') {
-      if (p === '/sales/chat')  return <ChatModule />;
-      return <SalesLeadPage />;
+      if (p === '/sales/leads')      return <SalesLeadPage />;
+      if (p === '/sales/tasks')      return <TaskManagement />;
+      if (p === '/sales/attendance') return <AttendanceManagement />;
+      if (p === '/sales/chat')       return <ChatModule />;
+      if (p === '/sales/leave')      return <LeaveManagement />;
+      return <EmployeeDashboard />;
     }
 
     if (p === '/employee/tasks')      return <TaskManagement />;
