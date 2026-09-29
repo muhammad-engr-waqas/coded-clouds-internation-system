@@ -217,8 +217,8 @@ export const deleteLead = async (req, res) => {
 /**
  * @route  POST /api/sales-leads/bulk
  * @access Admin, Sales
- * Body: { rows: SalesLead[] }  — upsert by leadId; missing leadId = new row
- * Used by the Excel-style grid auto-save on every cell edit.
+ * Body: { rows: SalesLead[] }  — upsert by _id; rows without _id are created only ONCE
+ * (deduped by a client-supplied tempKey to prevent repeated auto-save creating duplicates)
  */
 export const bulkUpsert = async (req, res) => {
   const { rows } = req.body;
@@ -228,7 +228,7 @@ export const bulkUpsert = async (req, res) => {
 
   for (const row of rows) {
     const {
-      _id, id, leadId,
+      _id, id,
       date, companyName, contactPerson, phone, email, city, industry,
       source, requirement, leadStatus, followUpDate, assignedTo, remarks,
     } = row;
@@ -240,7 +240,7 @@ export const bulkUpsert = async (req, res) => {
       req.user.role === 'Sales' ? req.user._id : (assignedTo || req.user._id);
 
     if (docId) {
-      // Update existing
+      // ── Update existing row ─────────────────────────────────────────
       const existing = await SalesLead.findById(docId);
       if (!existing) continue;
       if (req.user.role === 'Sales' && String(existing.assignedTo) !== req.user._id) continue;
@@ -257,29 +257,54 @@ export const bulkUpsert = async (req, res) => {
       }
       results.push(existing);
     } else {
-      // Create new
-      const newLead = await SalesLead.create({
-        date: date || new Date(),
-        companyName:   companyName   || '',
-        contactPerson: contactPerson || '',
-        phone:         phone         || '',
-        email:         email         || '',
-        city:          city          || '',
-        industry:      industry      || '',
-        source:        source        || '',
-        requirement:   requirement   || '',
-        leadStatus:    leadStatus    || 'New',
-        followUpDate:  followUpDate  || null,
-        assignedTo:    effectiveAssignee,
-        remarks:       remarks       || '',
-        createdBy:     req.user._id,
-        lastEditedBy:  req.user._id,
-      });
-      await recordActivity(newLead._id, newLead.leadId, req.user, 'CREATED', [], companyName || '');
-      results.push(newLead);
+      // ── Create new row ──────────────────────────────────────────────
+      // Safety dedup: if a row with same companyName+phone already exists for this
+      // assignee in the same month, update it instead of creating a duplicate.
+      // This prevents repeated auto-save calls from creating N copies.
+      let dedup = null;
+      if (companyName || phone) {
+        const dupQuery = {
+          assignedTo: effectiveAssignee,
+          ...(companyName ? { companyName: companyName.trim() } : {}),
+          ...(phone       ? { phone: phone.trim() }             : {}),
+        };
+        dedup = await SalesLead.findOne(dupQuery).sort({ createdAt: -1 });
+      }
+
+      if (dedup) {
+        // Treat as an update
+        const diff = buildDiff(dedup.toObject(), row);
+        const fields = { date, companyName, contactPerson, phone, email, city, industry, source, requirement, leadStatus, followUpDate, remarks };
+        Object.entries(fields).forEach(([k, v]) => { if (v !== undefined) dedup[k] = v; });
+        dedup.lastEditedBy = req.user._id;
+        await dedup.save();
+        if (diff.length > 0) {
+          await recordActivity(dedup._id, dedup.leadId, req.user, 'UPDATED', diff);
+        }
+        results.push(dedup);
+      } else {
+        const newLead = await SalesLead.create({
+          date:          date          || new Date(),
+          companyName:   companyName   || '',
+          contactPerson: contactPerson || '',
+          phone:         phone         || '',
+          email:         email         || '',
+          city:          city          || '',
+          industry:      industry      || '',
+          source:        source        || '',
+          requirement:   requirement   || '',
+          leadStatus:    leadStatus    || 'New',
+          followUpDate:  followUpDate  || null,
+          assignedTo:    effectiveAssignee,
+          remarks:       remarks       || '',
+          createdBy:     req.user._id,
+          lastEditedBy:  req.user._id,
+        });
+        await recordActivity(newLead._id, newLead.leadId, req.user, 'CREATED', [], companyName || '');
+        results.push(newLead);
+      }
     }
   }
-
   // Populate all results
   const populated = await SalesLead.populate(results, [
     { path: 'assignedTo', select: 'fullName role avatarUrl' },

@@ -200,29 +200,37 @@ export function SalesLeadPage({ viewUserId, viewUserName }: SalesLeadPageProps =
   }, [rows, assignedName]);
 
   // ── Dirty tracking → debounced auto-save ──────────────────────────────────
+  // Use a ref so the timer callback always sees the latest rows & dirtyIds
+  const rowsRef    = useRef<Partial<SalesLead>[]>([]);
+  const dirtyRef   = useRef<Set<number>>(new Set());
+  rowsRef.current  = rows;
+
   const markDirty = (idx: number) => {
-    setDirtyIds(prev => new Set(prev).add(idx));
+    dirtyRef.current.add(idx);
+    setDirtyIds(new Set(dirtyRef.current)); // keep UI in sync
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(() => autoSave(), 1200);
   };
 
   const autoSave = useCallback(async () => {
-    setDirtyIds(prev => {
-      if (prev.size === 0) return prev;
-      triggerSave(Array.from(prev));
-      return new Set();
-    });
-  }, [rows]); // eslint-disable-line
+    const indices = Array.from(dirtyRef.current);
+    if (indices.length === 0) return;
+    dirtyRef.current = new Set();
+    setDirtyIds(new Set());
+    await triggerSave(indices);
+  }, []); // eslint-disable-line
 
   const triggerSave = async (indices?: number[]) => {
-    const toSave = (indices ?? rows.map((_, i) => i))
-      .map(i => rows[i])
-      .filter(r => r && (r.companyName || r.contactPerson || r.phone || r.email));
+    const currentRows = rowsRef.current;
+    const toSave = (indices ?? currentRows.map((_, i) => i))
+      .map(i => ({ idx: i, row: currentRows[i] }))
+      .filter(({ row }) => row && (row.companyName || row.contactPerson || row.phone || row.email));
 
     if (toSave.length === 0) return;
     setSaving(true);
     try {
-      const result = await api.salesLeads.bulk(toSave.map(r => ({
+      const payload = toSave.map(({ row: r }) => ({
+        // Only include _id if it's a real persisted ID (not empty string)
         ...(r.id && r.id !== '' ? { _id: r.id } : {}),
         date:          r.date          || new Date().toISOString().slice(0, 10),
         companyName:   r.companyName   || '',
@@ -236,22 +244,27 @@ export function SalesLeadPage({ viewUserId, viewUserName }: SalesLeadPageProps =
         leadStatus:    r.leadStatus    || 'New',
         followUpDate:  r.followUpDate  || null,
         remarks:       r.remarks       || '',
-      })));
-
-      // Merge returned rows (with real IDs and leadIds) back into state
-      const savedMap = new Map((result.rows as any[]).map((r: any) => [r.companyName + r.phone, r]));
-      setRows(prev => prev.map(row => {
-        if (row.id) return row; // already persisted
-        const key = (row.companyName || '') + (row.phone || '');
-        const saved: any = savedMap.get(key);
-        if (saved) return {
-          ...row,
-          id: saved.id || saved._id,
-          leadId: saved.leadId,
-          assignedTo: typeof saved.assignedTo === 'object' ? saved.assignedTo.fullName : saved.assignedTo,
-        };
-        return row;
       }));
+
+      const result = await api.salesLeads.bulk(payload);
+
+      // Merge returned rows back by position (index-based, reliable)
+      setRows(prev => {
+        const next = [...prev];
+        toSave.forEach(({ idx }, i) => {
+          const saved: any = result.rows?.[i];
+          if (!saved) return;
+          next[idx] = {
+            ...next[idx],
+            id:         saved.id || saved._id || next[idx].id,
+            leadId:     saved.leadId     || next[idx].leadId,
+            assignedTo: typeof saved.assignedTo === 'object'
+              ? saved.assignedTo.fullName
+              : (saved.assignedTo || next[idx].assignedTo),
+          };
+        });
+        return next;
+      });
 
       setSuccessMsg('Saved ✓');
       setTimeout(() => setSuccessMsg(''), 2000);
