@@ -1,13 +1,13 @@
 import React from 'react';
-import { 
-  LayoutDashboard, 
-  Users, 
-  CheckSquare, 
-  Calendar, 
-  MessageSquare, 
-  Briefcase, 
-  BarChart3, 
-  ShieldCheck, 
+import {
+  LayoutDashboard,
+  Users,
+  CheckSquare,
+  Calendar,
+  MessageSquare,
+  Briefcase,
+  BarChart3,
+  ShieldCheck,
   Settings,
   ChevronLeft,
   ChevronRight,
@@ -16,6 +16,7 @@ import {
   LogOut,
   X,
   TrendingUp,
+  Receipt,
 } from 'lucide-react';
 import { useAppStore } from '@/src/store';
 import { cn } from '@/src/lib/utils';
@@ -35,6 +36,7 @@ const navItems = {
     { icon: TrendingUp,      label: 'Sales CRM',   path: '/admin/sales-leads' },
     { icon: BarChart3,       label: 'Reports',     path: '/admin/reports' },
     { icon: ShieldCheck,     label: 'Audit',       path: '/admin/audit' },
+    { icon: Receipt,         label: 'Invoice',     path: '/admin/invoice' },
     { icon: Settings,        label: 'Settings',    path: '/admin/settings' },
   ],
   HR: [
@@ -44,6 +46,7 @@ const navItems = {
     { icon: CreditCard,      label: 'Payroll',        path: '/hr/payroll' },
     { icon: Calendar,        label: 'Attendance',     path: '/hr/attendance' },
     { icon: MessageSquare,   label: 'Chat',           path: '/hr/chat' },
+    { icon: Receipt,         label: 'Invoice',        path: '/hr/invoice' },
   ],
   Sales: [
     { icon: LayoutDashboard, label: 'Dashboard',  path: '/sales' },

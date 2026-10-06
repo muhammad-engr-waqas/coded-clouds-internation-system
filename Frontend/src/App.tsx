@@ -23,6 +23,7 @@ import ReportsDashboard from './pages/ReportsDashboard';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { SalesLeadPage }      from './pages/SalesLeadPage';
 import { AdminSalesLeadPage } from './pages/AdminSalesLeadPage';
+import { InvoicePage }        from './pages/InvoicePage';
 
 // ── Hash-based routing helper ──────────────────────────────────────────────
 // We use window.location.hash (#/admin/employees) instead of pathname so that
@@ -92,6 +93,7 @@ export default function App() {
       if (p === '/admin/settings')  return <AdminSettings />;
       if (p === '/admin/reports')   return <ReportsDashboard />;
       if (p === '/admin/sales-leads') return <AdminSalesLeadPage />;
+      if (p === '/admin/invoice')     return <InvoicePage />;
       return <AdminDashboard />;
     }
 
@@ -101,6 +103,7 @@ export default function App() {
       if (p === '/hr/attendance') return <AttendanceManagement />;
       if (p === '/hr/chat')       return <ChatModule />;
       if (p === '/hr/leave')      return <LeaveManagement />;
+      if (p === '/hr/invoice')    return <InvoicePage />;
       return <EmployeeDashboard />;
     }
 

@@ -1,5 +1,16 @@
 @import "tailwindcss";
 
+/* Space Grotesk font — used by the Invoice module */
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap');
+
+/* Invoice-specific theme tokens (scoped so they don't affect CCIMS globals) */
+.invoice-module {
+  --color-navy: #0A1628;
+  --color-accent-blue: #4F8EF7;
+  --color-accent-teal: #00D4AA;
+  --font-display: "Space Grotesk", sans-serif;
+}
+
 @theme {
   --color-accent: var(--accent);
 }
