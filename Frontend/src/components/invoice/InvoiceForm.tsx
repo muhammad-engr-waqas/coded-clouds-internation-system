@@ -25,7 +25,7 @@ export const InvoiceForm = ({ data, onChange, onAddRow, onDeleteRow, onRowChange
       <div className="bg-white p-3 md:p-6 rounded-2xl shadow-sm border border-slate-100 space-y-3 md:space-y-6">
         <div className="flex items-center gap-2 mb-1">
           <Building2 className="text-accent-blue" size={18} />
-          <h2 className="font-display font-bold text-sm md:text-lg">Invoice Reference</h2>
+          <h2 className="font-bold text-sm md:text-lg">Invoice Reference</h2>
         </div>
         
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-6">
@@ -75,7 +75,7 @@ export const InvoiceForm = ({ data, onChange, onAddRow, onDeleteRow, onRowChange
       <div className="bg-white p-3 md:p-6 rounded-2xl shadow-sm border border-slate-100 space-y-3">
         <div className="flex items-center gap-2 mb-1">
           <Palette className="text-accent-blue" size={18} />
-          <h2 className="font-display font-bold text-sm md:text-lg">PDF Style</h2>
+          <h2 className="font-bold text-sm md:text-lg">PDF Style</h2>
         </div>
         <div className="grid grid-cols-2 gap-2">
           {([
@@ -105,7 +105,7 @@ export const InvoiceForm = ({ data, onChange, onAddRow, onDeleteRow, onRowChange
       <div className="bg-white p-3 md:p-6 rounded-2xl shadow-sm border border-slate-100 space-y-3 md:space-y-6">
         <div className="flex items-center gap-2 mb-1">
           <User className="text-accent-teal" size={18} />
-          <h2 className="font-display font-bold text-sm md:text-lg">Client Profile</h2>
+          <h2 className="font-bold text-sm md:text-lg">Client Profile</h2>
         </div>
         
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-6">
@@ -147,7 +147,7 @@ export const InvoiceForm = ({ data, onChange, onAddRow, onDeleteRow, onRowChange
         <div className="flex justify-between items-center mb-1">
           <div className="flex items-center gap-2">
             <CreditCard className="text-accent-blue" size={18} />
-            <h2 className="font-display font-bold text-sm md:text-lg">Fee Schedule</h2>
+            <h2 className="font-bold text-sm md:text-lg">Fee Schedule</h2>
           </div>
           <button
             onClick={onAddRow}
@@ -212,7 +212,7 @@ export const InvoiceForm = ({ data, onChange, onAddRow, onDeleteRow, onRowChange
           </div>
           <div className="text-right space-y-0.5 w-full md:w-auto pt-2 md:pt-0 border-t md:border-t-0 border-slate-50">
             <p className="text-[9px] font-bold text-slate-400 uppercase">Total Payable</p>
-            <p className="text-xl md:text-3xl font-display font-bold text-navy">
+            <p className="text-xl md:text-3xl font-bold text-navy">
               {CURRENCIES[data.currency].symbol} {grandTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}
             </p>
           </div>
@@ -223,7 +223,7 @@ export const InvoiceForm = ({ data, onChange, onAddRow, onDeleteRow, onRowChange
       <div className="bg-white p-3 md:p-6 rounded-2xl shadow-sm border border-slate-100 space-y-2">
         <div className="flex items-center gap-2">
           <Notebook className="text-slate-400" size={18} />
-          <h2 className="font-display font-bold text-sm md:text-lg">Terms & Conditions</h2>
+          <h2 className="font-bold text-sm md:text-lg">Terms & Conditions</h2>
         </div>
         <textarea
           rows={2}
@@ -237,11 +237,15 @@ export const InvoiceForm = ({ data, onChange, onAddRow, onDeleteRow, onRowChange
       {/* Export Action */}
       <button
         onClick={onExport}
-        className="w-full bg-navy hover:bg-navy/90 text-white py-3.5 md:py-4 rounded-xl md:rounded-2xl font-bold font-display flex items-center justify-center gap-2 md:gap-3 shadow-xl shadow-navy/10 transition-all active:scale-[0.98] text-sm md:text-base"
+        className="w-full py-3.5 md:py-4 rounded-xl md:rounded-2xl font-bold flex items-center justify-center gap-2 md:gap-3 shadow-xl transition-all active:scale-[0.98] text-sm md:text-base text-white"
+        style={{ background: '#0A1628', fontFamily: "'Space Grotesk', sans-serif" }}
+        onMouseEnter={e => (e.currentTarget.style.background = '#132038')}
+        onMouseLeave={e => (e.currentTarget.style.background = '#0A1628')}
       >
         <Download size={18} />
-        Finalize & Download PDF
+        Finalize &amp; Download PDF
       </button>
     </div>
   );
 };
+
