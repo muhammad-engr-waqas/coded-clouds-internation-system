@@ -228,4 +228,12 @@ export const api = {
     salespeople: () => request('/sales-leads/salespeople'),
     industries:  () => request('/sales-leads/industries'),
   },
+
+  // ---------------- Invoices ----------------
+  invoices: {
+    list:   (params: Record<string, string> = {}) => request(`/invoices?${new URLSearchParams(params)}`),
+    create: (payload: any) => request('/invoices', { method: 'POST', body: payload }),
+    get:    (id: string)   => request(`/invoices/${id}`),
+    remove: (id: string)   => request(`/invoices/${id}`, { method: 'DELETE' }),
+  },
 };
