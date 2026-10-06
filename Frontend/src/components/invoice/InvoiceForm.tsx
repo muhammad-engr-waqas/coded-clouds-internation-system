@@ -57,9 +57,12 @@ export const InvoiceForm = ({ data, onChange, onAddRow, onDeleteRow, onRowChange
                 onClick={() => onChange({ ...data, currency: cur })}
                 className={`px-3 py-1.5 md:px-4 md:py-2 rounded-lg text-[10px] md:text-sm font-medium transition-all border ${
                   data.currency === cur
-                    ? "bg-navy text-white border-navy shadow-md"
-                    : "bg-white text-slate-600 border-slate-200 hover:border-accent-blue/50"
+                    ? "border-transparent shadow-md"
+                    : "bg-white text-slate-600 border-slate-200 hover:border-blue-300"
                 }`}
+                style={data.currency === cur
+                  ? { background: '#0A1628', color: '#ffffff', borderColor: '#0A1628' }
+                  : {}}
               >
                 {CURRENCIES[cur].label}
               </button>
@@ -85,9 +88,12 @@ export const InvoiceForm = ({ data, onChange, onAddRow, onDeleteRow, onRowChange
               onClick={() => onChange({ ...data, templateStyle: option.value })}
               className={`px-3 py-2 rounded-xl text-[10px] md:text-sm font-bold transition-all border ${
                 (data.templateStyle || "classic") === option.value
-                  ? "bg-navy text-white border-navy shadow-md"
-                  : "bg-slate-50 text-slate-600 border-slate-200 hover:border-accent-blue/50"
+                  ? "border-transparent shadow-md"
+                  : "bg-slate-50 text-slate-600 border-slate-200 hover:border-blue-300"
               }`}
+              style={(data.templateStyle || "classic") === option.value
+                ? { background: '#0A1628', color: '#ffffff', borderColor: '#0A1628' }
+                : {}}
             >
               {option.label} PDF
             </button>

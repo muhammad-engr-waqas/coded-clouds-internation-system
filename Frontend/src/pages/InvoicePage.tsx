@@ -7,14 +7,14 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { InvoiceData, ServiceItem, EXCHANGE_RATES, CURRENCIES } from '@/src/invoice-types';
-import { InvoiceForm }         from '@/src/components/invoice/InvoiceForm';
+import { InvoiceData, ServiceItem, EXCHANGE_RATES, CURRENCIES } from '@/src/invoice-types';import { InvoiceForm }         from '@/src/components/invoice/InvoiceForm';
 import { InvoicePreview }      from '@/src/components/invoice/InvoicePreview';
 import { generateInvoicePDF }  from '@/src/lib/invoice-pdf-utils';
 import { api }                 from '@/src/lib/api';
 import {
   Sparkles, History, Layout, FileText, Trash2,
   Search, Loader2, AlertCircle, X, Download, RefreshCw,
+  Calendar, Phone, CreditCard, User2,
 } from 'lucide-react';
 import { cn } from '@/src/lib/utils';
 
@@ -32,10 +32,6 @@ const createDefaultData = (): InvoiceData => ({
   notes:         '',
   templateStyle: 'classic',
 });
-
-const CURRENCY_FLAGS: Record<string, string> = {
-  SAR: '🇸🇦', PKR: '🇵🇰', USD: '🇺🇸', EUR: '🇪🇺',
-};
 
 // ─── InvoiceHistoryTab ────────────────────────────────────────────────────────
 function InvoiceHistoryTab() {
@@ -162,8 +158,7 @@ function InvoiceHistoryTab() {
             const isDeleting  = deletingId === id;
             const isRegening  = regenId    === id;
             const total = inv.grandTotal ?? 0;
-            const sym   = CURRENCIES[inv.currency as keyof typeof CURRENCIES]?.symbol ?? inv.currency;
-            const flag  = CURRENCY_FLAGS[inv.currency] ?? '';
+            const sym   = CURRENCIES[inv.currency]?.symbol ?? inv.currency;
             const date  = inv.date ? inv.date.slice(0, 10) : '—';
             const createdBy = typeof inv.createdBy === 'object'
               ? inv.createdBy?.fullName ?? '—'
@@ -177,9 +172,9 @@ function InvoiceHistoryTab() {
                 <div className="flex items-start justify-between gap-3 flex-wrap">
                   {/* Left info */}
                   <div className="flex items-start gap-4 min-w-0">
-                    {/* Avatar / icon */}
-                    <div className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center shrink-0 text-lg">
-                      {flag}
+                    {/* Currency badge */}
+                    <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center shrink-0">
+                      <span className="text-[10px] font-black text-blue-600 uppercase">{inv.currency}</span>
                     </div>
                     <div className="min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
@@ -197,14 +192,22 @@ function InvoiceHistoryTab() {
                         {inv.clientName || <span className="italic opacity-40">No client</span>}
                       </p>
                       <div className="flex flex-wrap gap-x-4 gap-y-0.5 mt-1">
-                        <span className="text-[10px] text-slate-400">📅 {date}</span>
+                        <span className="flex items-center gap-1 text-[10px] text-slate-400">
+                          <Calendar className="w-3 h-3 shrink-0" /> {date}
+                        </span>
                         {inv.clientContact && (
-                          <span className="text-[10px] text-slate-400">📞 {inv.clientContact}</span>
+                          <span className="flex items-center gap-1 text-[10px] text-slate-400">
+                            <Phone className="w-3 h-3 shrink-0" /> {inv.clientContact}
+                          </span>
                         )}
                         {inv.billNumber && (
-                          <span className="text-[10px] text-slate-400">🔢 {inv.billNumber}</span>
+                          <span className="flex items-center gap-1 text-[10px] text-slate-400">
+                            <CreditCard className="w-3 h-3 shrink-0" /> {inv.billNumber}
+                          </span>
                         )}
-                        <span className="text-[10px] text-slate-400">👤 {createdBy}</span>
+                        <span className="flex items-center gap-1 text-[10px] text-slate-400">
+                          <User2 className="w-3 h-3 shrink-0" /> {createdBy}
+                        </span>
                       </div>
                       {/* Services preview */}
                       {inv.services?.length > 0 && (
